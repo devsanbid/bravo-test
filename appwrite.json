@@ -1,0 +1,919 @@
+{
+    "projectId": "67bd68d000255df6cc95",
+    "projectName": "bravo",
+    "settings": {
+        "services": {
+            "account": true,
+            "avatars": true,
+            "databases": true,
+            "locale": true,
+            "health": true,
+            "storage": true,
+            "teams": true,
+            "users": true,
+            "functions": true,
+            "graphql": true,
+            "messaging": true
+        },
+        "auth": {
+            "methods": {
+                "jwt": true,
+                "phone": true,
+                "invites": true,
+                "anonymous": true,
+                "email-otp": true,
+                "magic-url": true,
+                "email-password": true
+            },
+            "security": {
+                "duration": 31536000,
+                "limit": 0,
+                "sessionsLimit": 10,
+                "passwordHistory": 0,
+                "passwordDictionary": false,
+                "personalDataCheck": false,
+                "sessionAlerts": false,
+                "mockNumbers": []
+            }
+        }
+    },
+    "databases": [
+        {
+            "$id": "67bd6d8d000a536a4c26",
+            "name": "bravoDB",
+            "enabled": true
+        }
+    ],
+    "collections": [
+        {
+            "$id": "67bec7a1000ea6fe24cb",
+            "$permissions": [
+                "read(\"role:authenticated\")",
+                "create(\"role:authenticated\")",
+                "update(\"role:authenticated\")",
+                "delete(\"role:admin\")",
+                "delete(\"role:mod\")"
+            ],
+            "databaseId": "67bd6d8d000a536a4c26",
+            "name": "StudentAttempts",
+            "enabled": true,
+            "documentSecurity": true,
+            "attributes": [
+                {
+                    "key": "id",
+                    "type": "string",
+                    "required": true,
+                    "array": false,
+                    "size": 255,
+                    "default": null
+                },
+                {
+                    "key": "userId",
+                    "type": "string",
+                    "required": true,
+                    "array": false,
+                    "size": 255,
+                    "default": null
+                },
+                {
+                    "key": "mockTestId",
+                    "type": "string",
+                    "required": true,
+                    "array": false,
+                    "size": 255,
+                    "default": null
+                },
+                {
+                    "key": "startedAt",
+                    "type": "datetime",
+                    "required": true,
+                    "array": false,
+                    "format": "",
+                    "default": null
+                },
+                {
+                    "key": "status",
+                    "type": "string",
+                    "required": true,
+                    "array": false,
+                    "size": 255,
+                    "default": null
+                },
+                {
+                    "key": "totalScore",
+                    "type": "integer",
+                    "required": false,
+                    "array": false,
+                    "min": -9223372036854775808,
+                    "max": 9223372036854775807,
+                    "default": null
+                },
+                {
+                    "key": "percentageScore",
+                    "type": "integer",
+                    "required": false,
+                    "array": false,
+                    "min": -9223372036854775808,
+                    "max": 9223372036854775807,
+                    "default": null
+                },
+                {
+                    "key": "completedAt",
+                    "type": "string",
+                    "required": false,
+                    "array": false,
+                    "size": 100,
+                    "default": null
+                },
+                {
+                    "key": "feedback",
+                    "type": "string",
+                    "required": false,
+                    "array": false,
+                    "size": 800,
+                    "default": null
+                },
+                {
+                    "key": "gradedBy",
+                    "type": "string",
+                    "required": false,
+                    "array": false,
+                    "size": 100,
+                    "default": null
+                },
+                {
+                    "key": "gradedAt",
+                    "type": "string",
+                    "required": false,
+                    "array": false,
+                    "size": 100,
+                    "default": null
+                }
+            ],
+            "indexes": []
+        },
+        {
+            "$id": "67bebf1d003907cdb164",
+            "$permissions": [
+                "read(\"role:any\")",
+                "create(\"role:admin\")",
+                "create(\"role:mod\")",
+                "update(\"role:admin\")",
+                "update(\"role:mod\")",
+                "delete(\"role:admin\")"
+            ],
+            "databaseId": "67bd6d8d000a536a4c26",
+            "name": "MockTests",
+            "enabled": true,
+            "documentSecurity": false,
+            "attributes": [
+                {
+                    "key": "id",
+                    "type": "string",
+                    "required": true,
+                    "array": false,
+                    "size": 255,
+                    "default": null
+                },
+                {
+                    "key": "title",
+                    "type": "string",
+                    "required": true,
+                    "array": false,
+                    "size": 255,
+                    "default": null
+                },
+                {
+                    "key": "description",
+                    "type": "string",
+                    "required": true,
+                    "array": false,
+                    "size": 824,
+                    "default": null
+                },
+                {
+                    "key": "createdBy",
+                    "type": "string",
+                    "required": true,
+                    "array": false,
+                    "size": 255,
+                    "default": null
+                },
+                {
+                    "key": "createdAt",
+                    "type": "datetime",
+                    "required": false,
+                    "array": false,
+                    "format": "",
+                    "default": null
+                },
+                {
+                    "key": "updatedAt",
+                    "type": "datetime",
+                    "required": false,
+                    "array": false,
+                    "format": "",
+                    "default": null
+                },
+                {
+                    "key": "isActive",
+                    "type": "boolean",
+                    "required": true,
+                    "array": false,
+                    "default": null
+                },
+                {
+                    "key": "scheduledDate",
+                    "type": "datetime",
+                    "required": false,
+                    "array": false,
+                    "format": "",
+                    "default": null
+                },
+                {
+                    "key": "duration",
+                    "type": "integer",
+                    "required": false,
+                    "array": false,
+                    "min": -9223372036854775808,
+                    "max": 9223372036854775807,
+                    "default": null
+                },
+                {
+                    "key": "totalMarks",
+                    "type": "integer",
+                    "required": false,
+                    "array": false,
+                    "min": -9223372036854775808,
+                    "max": 9223372036854775807,
+                    "default": null
+                },
+                {
+                    "key": "category",
+                    "type": "string",
+                    "required": true,
+                    "array": false,
+                    "size": 255,
+                    "default": null
+                },
+                {
+                    "key": "instructions",
+                    "type": "string",
+                    "required": false,
+                    "array": false,
+                    "size": 840,
+                    "default": null
+                }
+            ],
+            "indexes": []
+        },
+        {
+            "$id": "67bd6da0000cb6581bff",
+            "$permissions": [
+                "read(\"role:authenticated\")",
+                "create(\"role:admin\")",
+                "update(\"role:admin\")",
+                "update(\"user:userId\", [\"userId\"])",
+                "delete(\"role:admin\")"
+            ],
+            "databaseId": "67bd6d8d000a536a4c26",
+            "name": "UserProfiles",
+            "enabled": true,
+            "documentSecurity": true,
+            "attributes": [
+                {
+                    "key": "userId",
+                    "type": "string",
+                    "required": true,
+                    "array": false,
+                    "size": 255,
+                    "default": null
+                },
+                {
+                    "key": "firstName",
+                    "type": "string",
+                    "required": true,
+                    "array": false,
+                    "size": 30,
+                    "default": null
+                },
+                {
+                    "key": "middleName",
+                    "type": "string",
+                    "required": false,
+                    "array": false,
+                    "size": 20,
+                    "default": null
+                },
+                {
+                    "key": "lastName",
+                    "type": "string",
+                    "required": true,
+                    "array": false,
+                    "size": 20,
+                    "default": null
+                },
+                {
+                    "key": "email",
+                    "type": "string",
+                    "required": true,
+                    "array": false,
+                    "format": "email",
+                    "default": null
+                },
+                {
+                    "key": "gender",
+                    "type": "string",
+                    "required": true,
+                    "array": false,
+                    "size": 20,
+                    "default": null
+                },
+                {
+                    "key": "dateOfBirth",
+                    "type": "datetime",
+                    "required": true,
+                    "array": false,
+                    "format": "",
+                    "default": null
+                },
+                {
+                    "key": "phone",
+                    "type": "string",
+                    "required": true,
+                    "array": false,
+                    "size": 15,
+                    "default": null
+                },
+                {
+                    "key": "service",
+                    "type": "string",
+                    "required": true,
+                    "array": false,
+                    "size": 200,
+                    "default": null
+                },
+                {
+                    "key": "role",
+                    "type": "string",
+                    "required": false,
+                    "array": false,
+                    "size": 20,
+                    "default": "student"
+                },
+                {
+                    "key": "type",
+                    "type": "string",
+                    "required": false,
+                    "array": false,
+                    "size": 100,
+                    "default": "student"
+                }
+            ],
+            "indexes": []
+        },
+        {
+            "$id": "67bec8c1003590b59601",
+            "$permissions": [
+                "read(\"role:authenticated\")",
+                "create(\"role:authenticated\")",
+                "update(\"user:userId\", [\"userId\"])",
+                "delete(\"role:admin\")",
+                "delete(\"role:mod\")"
+            ],
+            "databaseId": "67bd6d8d000a536a4c26",
+            "name": "Notifications",
+            "enabled": true,
+            "documentSecurity": true,
+            "attributes": [
+                {
+                    "key": "id",
+                    "type": "string",
+                    "required": true,
+                    "array": false,
+                    "size": 255,
+                    "default": null
+                },
+                {
+                    "key": "userId",
+                    "type": "string",
+                    "required": false,
+                    "array": false,
+                    "size": 255,
+                    "default": null
+                },
+                {
+                    "key": "mockTestId",
+                    "type": "string",
+                    "required": false,
+                    "array": false,
+                    "size": 255,
+                    "default": null
+                },
+                {
+                    "key": "message",
+                    "type": "string",
+                    "required": false,
+                    "array": false,
+                    "size": 255,
+                    "default": null
+                },
+                {
+                    "key": "createdAt",
+                    "type": "datetime",
+                    "required": false,
+                    "array": false,
+                    "format": "",
+                    "default": null
+                },
+                {
+                    "key": "read",
+                    "type": "boolean",
+                    "required": false,
+                    "array": false,
+                    "default": null
+                },
+                {
+                    "key": "type",
+                    "type": "string",
+                    "required": false,
+                    "array": false,
+                    "size": 255,
+                    "default": null
+                }
+            ],
+            "indexes": []
+        },
+        {
+            "$id": "67bec83e000092fd6595",
+            "$permissions": [
+                "read(\"role:authenticated\")",
+                "create(\"role:authenticated\")",
+                "update(\"role:authenticated\")",
+                "delete(\"role:admin\")",
+                "delete(\"role:mod\")"
+            ],
+            "databaseId": "67bd6d8d000a536a4c26",
+            "name": "StudentResponses",
+            "enabled": true,
+            "documentSecurity": true,
+            "attributes": [
+                {
+                    "key": "id",
+                    "type": "string",
+                    "required": true,
+                    "array": false,
+                    "size": 255,
+                    "default": null
+                },
+                {
+                    "key": "attemptId",
+                    "type": "string",
+                    "required": true,
+                    "array": false,
+                    "size": 255,
+                    "default": null
+                },
+                {
+                    "key": "questionId",
+                    "type": "string",
+                    "required": false,
+                    "array": false,
+                    "size": 255,
+                    "default": null
+                },
+                {
+                    "key": "response",
+                    "type": "string",
+                    "required": false,
+                    "array": false,
+                    "size": 842,
+                    "default": null
+                },
+                {
+                    "key": "isCorrect",
+                    "type": "string",
+                    "required": false,
+                    "array": false,
+                    "size": 255,
+                    "default": null
+                },
+                {
+                    "key": "audioResponse",
+                    "type": "string",
+                    "required": false,
+                    "array": false,
+                    "size": 255,
+                    "default": null
+                },
+                {
+                    "key": "imageResponse",
+                    "type": "string",
+                    "required": false,
+                    "array": false,
+                    "size": 255,
+                    "default": null
+                },
+                {
+                    "key": "score",
+                    "type": "integer",
+                    "required": false,
+                    "array": false,
+                    "min": -9223372036854775808,
+                    "max": 9223372036854775807,
+                    "default": null
+                }
+            ],
+            "indexes": []
+        },
+        {
+            "$id": "67c6ad26000b66f38442",
+            "$permissions": [
+                "read(\"role:any\")",
+                "create(\"role:authenticated\")",
+                "update(\"role:admin\")",
+                "update(\"role:mod\")",
+                "update(\"user:userId\", [\"userId\"])",
+                "delete(\"role:admin\")",
+                "delete(\"role:mod\")",
+                "delete(\"user:userId\", [\"userId\"])"
+            ],
+            "databaseId": "67bd6d8d000a536a4c26",
+            "name": "gallery",
+            "enabled": true,
+            "documentSecurity": true,
+            "attributes": [
+                {
+                    "key": "title",
+                    "type": "string",
+                    "required": false,
+                    "array": false,
+                    "size": 255,
+                    "default": null
+                },
+                {
+                    "key": "description",
+                    "type": "string",
+                    "required": false,
+                    "array": false,
+                    "size": 500,
+                    "default": null
+                },
+                {
+                    "key": "imageId",
+                    "type": "string",
+                    "required": false,
+                    "array": false,
+                    "size": 400,
+                    "default": null
+                },
+                {
+                    "key": "createdAt",
+                    "type": "datetime",
+                    "required": false,
+                    "array": false,
+                    "format": "",
+                    "default": null
+                },
+                {
+                    "key": "userId",
+                    "type": "string",
+                    "required": false,
+                    "array": false,
+                    "size": 255,
+                    "default": null
+                }
+            ],
+            "indexes": []
+        },
+        {
+            "$id": "67c2e24f0002522223d9",
+            "$permissions": [
+                "read(\"role:any\")",
+                "create(\"role:admin\")",
+                "create(\"role:mod\")",
+                "update(\"role:admin\")",
+                "update(\"role:mod\")",
+                "delete(\"role:admin\")",
+                "delete(\"role:mod\")"
+            ],
+            "databaseId": "67bd6d8d000a536a4c26",
+            "name": "blogs",
+            "enabled": true,
+            "documentSecurity": false,
+            "attributes": [
+                {
+                    "key": "title",
+                    "type": "string",
+                    "required": false,
+                    "array": false,
+                    "size": 100,
+                    "default": null
+                },
+                {
+                    "key": "content",
+                    "type": "string",
+                    "required": false,
+                    "array": false,
+                    "size": 1200,
+                    "default": null
+                },
+                {
+                    "key": "authorId",
+                    "type": "string",
+                    "required": false,
+                    "array": false,
+                    "size": 100,
+                    "default": null
+                },
+                {
+                    "key": "authorName",
+                    "type": "string",
+                    "required": false,
+                    "array": false,
+                    "size": 100,
+                    "default": null
+                },
+                {
+                    "key": "createdAt",
+                    "type": "datetime",
+                    "required": false,
+                    "array": false,
+                    "format": "",
+                    "default": null
+                },
+                {
+                    "key": "updatedAt",
+                    "type": "datetime",
+                    "required": false,
+                    "array": false,
+                    "format": "",
+                    "default": null
+                },
+                {
+                    "key": "slug",
+                    "type": "string",
+                    "required": false,
+                    "array": false,
+                    "size": 100,
+                    "default": null
+                },
+                {
+                    "key": "excerpt",
+                    "type": "string",
+                    "required": false,
+                    "array": false,
+                    "size": 500,
+                    "default": null
+                },
+                {
+                    "key": "featuredImage",
+                    "type": "string",
+                    "required": false,
+                    "array": false,
+                    "size": 200,
+                    "default": null
+                },
+                {
+                    "key": "tags",
+                    "type": "string",
+                    "required": false,
+                    "array": false,
+                    "size": 100,
+                    "default": null
+                },
+                {
+                    "key": "categories",
+                    "type": "string",
+                    "required": false,
+                    "array": true,
+                    "size": 500,
+                    "default": null
+                },
+                {
+                    "key": "published",
+                    "type": "boolean",
+                    "required": false,
+                    "array": false,
+                    "default": null
+                },
+                {
+                    "key": "id",
+                    "type": "string",
+                    "required": false,
+                    "array": false,
+                    "size": 100,
+                    "default": null
+                }
+            ],
+            "indexes": []
+        },
+        {
+            "$id": "67bec018001c0192c60c",
+            "$permissions": [
+                "read(\"role:authenticated\")",
+                "create(\"role:admin\")",
+                "create(\"role:mod\")",
+                "update(\"role:admin\")",
+                "update(\"role:mod\")",
+                "delete(\"role:admin\")"
+            ],
+            "databaseId": "67bd6d8d000a536a4c26",
+            "name": "Questions",
+            "enabled": true,
+            "documentSecurity": false,
+            "attributes": [
+                {
+                    "key": "id",
+                    "type": "string",
+                    "required": true,
+                    "array": false,
+                    "size": 255,
+                    "default": null
+                },
+                {
+                    "key": "questionType",
+                    "type": "string",
+                    "required": true,
+                    "array": false,
+                    "size": 100,
+                    "default": null
+                },
+                {
+                    "key": "questionText",
+                    "type": "string",
+                    "required": true,
+                    "array": false,
+                    "size": 824,
+                    "default": null
+                },
+                {
+                    "key": "questionImage",
+                    "type": "string",
+                    "required": false,
+                    "array": false,
+                    "size": 255,
+                    "default": null
+                },
+                {
+                    "key": "audioUrl",
+                    "type": "string",
+                    "required": false,
+                    "array": false,
+                    "size": 255,
+                    "default": null
+                },
+                {
+                    "key": "options",
+                    "type": "string",
+                    "required": false,
+                    "array": true,
+                    "size": 842,
+                    "default": null
+                },
+                {
+                    "key": "correctAnswer",
+                    "type": "string",
+                    "required": false,
+                    "array": false,
+                    "size": 255,
+                    "default": null
+                },
+                {
+                    "key": "marks",
+                    "type": "integer",
+                    "required": false,
+                    "array": false,
+                    "min": -9223372036854775808,
+                    "max": 9223372036854775807,
+                    "default": null
+                },
+                {
+                    "key": "order",
+                    "type": "integer",
+                    "required": false,
+                    "array": false,
+                    "min": -9223372036854775808,
+                    "max": 9223372036854775807,
+                    "default": null
+                },
+                {
+                    "key": "timeLimit",
+                    "type": "integer",
+                    "required": false,
+                    "array": false,
+                    "min": -9223372036854775808,
+                    "max": 9223372036854775807,
+                    "default": null
+                },
+                {
+                    "key": "instructions",
+                    "type": "string",
+                    "required": false,
+                    "array": false,
+                    "size": 800,
+                    "default": null
+                },
+                {
+                    "key": "mockTestId",
+                    "type": "string",
+                    "required": true,
+                    "array": false,
+                    "size": 255,
+                    "default": null
+                }
+            ],
+            "indexes": [
+                {
+                    "key": "index_1",
+                    "type": "unique",
+                    "status": "available",
+                    "attributes": [
+                        "id"
+                    ],
+                    "orders": [
+                        "ASC"
+                    ]
+                }
+            ]
+        },
+        {
+            "$id": "67c84a1500325a2d1875",
+            "$permissions": [
+                "read(\"role:authenticated\")",
+                "create(\"role:authenticated\")",
+                "update(\"user:senderId\", [\"senderId\"])",
+                "delete(\"role:admin\")",
+                "delete(\"role:mod\")"
+            ],
+            "databaseId": "67bd6d8d000a536a4c26",
+            "name": "Messages",
+            "enabled": true,
+            "documentSecurity": true,
+            "attributes": [
+                {
+                    "key": "messageId",
+                    "type": "string",
+                    "required": false,
+                    "array": false,
+                    "size": 149,
+                    "default": null
+                },
+                {
+                    "key": "senderId",
+                    "type": "string",
+                    "required": false,
+                    "array": false,
+                    "size": 100,
+                    "default": "150"
+                },
+                {
+                    "key": "receiverId",
+                    "type": "string",
+                    "required": false,
+                    "array": false,
+                    "size": 100,
+                    "default": null
+                },
+                {
+                    "key": "text",
+                    "type": "string",
+                    "required": false,
+                    "array": false,
+                    "size": 830,
+                    "default": null
+                },
+                {
+                    "key": "timestamp",
+                    "type": "string",
+                    "required": false,
+                    "array": false,
+                    "size": 100,
+                    "default": null
+                }
+            ],
+            "indexes": []
+        }
+    ],
+    "buckets": [
+        {
+            "$id": "67c6a4660028f19931ae",
+            "$permissions": [
+                "read(\"role:any\")",
+                "create(\"role:authenticated\")",
+                "update(\"role:admin\")",
+                "update(\"role:mod\")",
+                "delete(\"role:admin\")",
+                "delete(\"role:mod\")"
+            ],
+            "fileSecurity": true,
+            "name": "bravo",
+            "enabled": true,
+            "maximumFileSize": 30000000,
+            "allowedFileExtensions": [],
+            "compression": "none",
+            "encryption": true,
+            "antivirus": true
+        }
+    ]
+}
