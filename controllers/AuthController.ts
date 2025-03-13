@@ -144,12 +144,8 @@ export async function resetPassword(
 
 export async function getCurrentUser() {
 	try {
-		console.log("Attempting to get current user");
-		
-		// Get session client for the authenticated user
-		let sessionClient;
 		try {
-			sessionClient = await createSessionClient();
+			let sessionClient = await createSessionClient();
 			if (!sessionClient) {
 				console.error("Failed to create session client");
 				return null;

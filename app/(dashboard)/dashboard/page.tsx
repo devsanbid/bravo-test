@@ -275,23 +275,36 @@ export default function DashboardPage() {
     useEffect(() => {
         const fetchAttempts = async() => {
             try{
+                console.log("Starting to fetch attempts...");
+                console.log("Current user:", user);
+                
                 if(!user) {
+                    console.log("No user found, checking user...");
                     await checkUser();
+                    console.log("After checkUser, user:", user);
                 }
                 
                 // Make sure user is defined and has an id before proceeding
                 if(user && user.id){
+                    console.log("User found with ID:", user.id);
                     const studentId = user.id;
 
                     // Fetch attempts only if studentId is defined
                     if (studentId) {
+                        console.log("Fetching attempts for studentId:", studentId);
                         const attemptsData = await getStudentAttemptsByUserId(studentId);
+                        console.log("Raw attempts data received:", attemptsData);
+                        console.log("Number of attempts found:", attemptsData?.length || 0);
 
                         // Process attempts only if we got data back
                         if (attemptsData && attemptsData.length > 0) {
+                            console.log("Processing attempts with mock test data...");
                             const attemptsWithMockTest: AttemptWithMockTest[] = await Promise.all(
                                 attemptsData.map(async (attempt) => {
+                                    console.log("Processing attempt:", attempt);
+                                    console.log("Attempt mockTestId:", attempt.mockTestId);
                                     const mockTest = await getMockTestById(attempt.mockTestId);
+                                    console.log("Mock test data:", mockTest);
                                     return {
                                         id: attempt.$id,
                                         userId: attempt.userId,
@@ -306,29 +319,38 @@ export default function DashboardPage() {
                                     }
                                 })
                             );
+                            console.log("Processed attempts with mock test data:", attemptsWithMockTest);
                             setAttempts(attemptsWithMockTest);
                         } else {
                             // If no attempts found, set empty array
+                            console.log("No attempts found, setting empty array");
                             setAttempts([]);
                         }
                     }
                 } else {
                     // If no user, set empty array for attempts
+                    console.log("No user or user ID, setting empty array for attempts");
                     setAttempts([]);
                 }
             } catch (error: any) {
                 console.error("Error fetching attempts:", error);
+                console.error("Error stack:", error.stack);
                 setError(error.message);
             } finally {
                 setLoading(false);
+                console.log("Finished fetching attempts, loading set to false");
             }
         }
+        console.log("Dashboard component mounted, calling fetchAttempts");
         fetchAttempts();
     }, [user, checkUser]);
 
     // Calculate stats for overview cards
     const calculateStats = () => {
+        console.log("Calculating stats from attempts:", attempts);
+        
         if (!attempts || attempts.length === 0) {
+            console.log("No attempts data, returning zero stats");
             return {
                 totalTests: 0,
                 averageScore: 0,
@@ -338,15 +360,26 @@ export default function DashboardPage() {
         }
 
         const completedAttempts = attempts.filter(a => a.status === "completed");
-        const totalScore = completedAttempts.reduce((sum, a) => sum + (a.totalScore || 0), 0);
-        const averageScore = completedAttempts.length > 0 ? (totalScore / completedAttempts.length).toFixed(1) : 0;
+        console.log("Completed attempts:", completedAttempts);
         
-        return {
+        const totalScore = completedAttempts.reduce((sum, a) => sum + (a.totalScore || 0), 0);
+        console.log("Total score from completed attempts:", totalScore);
+        
+        const averageScore = completedAttempts.length > 0 ? (totalScore / completedAttempts.length).toFixed(1) : 0;
+        console.log("Calculated average score:", averageScore);
+        
+        const inProgressTests = attempts.filter(a => a.status === "in_progress").length;
+        console.log("In-progress tests:", inProgressTests);
+        
+        const result = {
             totalTests: attempts.length,
             averageScore,
             completedTests: completedAttempts.length,
-            inProgressTests: attempts.filter(a => a.status === "in_progress").length
+            inProgressTests
         };
+        
+        console.log("Final stats:", result);
+        return result;
     };
 
     const stats = calculateStats();

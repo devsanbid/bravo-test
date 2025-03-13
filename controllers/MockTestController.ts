@@ -128,17 +128,25 @@ export async function testGetSingleDocument(docId: string) {
 // Get a single mock test by ID
 export async function getMockTestById(id: string) {
 	try {
+		console.log("getMockTestById called with id:", id);
+		console.log("Database ID:", process.env.NEXT_PUBLIC_DATABASEID);
+		console.log("MockTest Collection ID:", process.env.MOCKTEST_ID);
+		
 		const { databases } = await createAdminClient();
+		console.log("Admin client created successfully for getMockTestById");
 
+		console.log("Fetching mock test with ID:", id);
 		const mockTest = await databases.getDocument(
 			process.env.NEXT_PUBLIC_DATABASEID || "",
 			process.env.MOCKTEST_ID || "",
 			id,
 		);
-
+		
+		console.log("Mock test data retrieved:", mockTest);
 		return mockTest;
-	} catch (error) {
+	} catch (error: any) {
 		console.error("Error getting mock test by ID:", error);
+		console.error("Error stack:", error.stack);
 		throw error;
 	}
 }
@@ -421,17 +429,29 @@ export async function completeStudentAttempt(
 // Get student attempts by user ID
 export async function getStudentAttemptsByUserId(userId: string) {
 	try {
+		console.log("getStudentAttemptsByUserId called with userId:", userId);
+		console.log("Database ID:", process.env.NEXT_PUBLIC_DATABASEID);
+		console.log("Student Attempts Collection ID:", process.env.STUDENTATTEMPTS_ID);
+		
 		const { databases } = await createAdminClient();
+		console.log("Admin client created successfully");
 
+		console.log("Querying for attempts with userId:", userId);
 		const attempts = await databases.listDocuments(
 			process.env.NEXT_PUBLIC_DATABASEID || "",
 			process.env.STUDENTATTEMPTS_ID || "",
 			[Query.equal("userId", userId)],
 		);
+		
+		console.log("Query completed, total documents found:", attempts.total);
+		console.log("Attempts data:", attempts);
+		console.log("Attempts documents:", attempts.documents);
 
 		return attempts.documents;
-	} catch (error) {
+	} catch (error: any) {
 		console.error("Error getting student attempts by user ID:", error);
+		console.error("Error message:", error.message);
+		console.error("Error stack:", error.stack);
 		throw error;
 	}
 }
