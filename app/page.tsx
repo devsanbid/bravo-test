@@ -7,7 +7,6 @@ import ContactSectionFrame from "@/components/main/ContactSectionFrame";
 import RecentBlogSection from "@/components/main/RecentBlogSection";
 import Testimonial from "@/components/main/Testimonial";
 import type { Metadata } from "next";
-import "react-quill/dist/quill.snow.css";
 
 export const metadata: Metadata = {
     title: 'Bravo Consultancy - Expert IELTS, PTE, GRE, SAT Preparation',
