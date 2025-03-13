@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { useAuthStore } from "@/lib/stores/authStore";
+import RichTextEditor from "./RichTextEditor";
 import {
 	getStudentAttemptById,
 	getQuestionsByMockTestId,
@@ -192,11 +193,8 @@ export default function TakeExamPage(
                 });
             }
             
-            // Show subtle success notification
-            toast.success("Answer saved", {
-                duration: 1000,
-                position: "bottom-right",
-            });
+            // Don't show toast notification for every keystroke
+            // Only show error if something goes wrong
         } catch (error) {
             console.error("Error saving response:", error);
             toast.error("Failed to save answer");
@@ -221,7 +219,7 @@ export default function TakeExamPage(
                 totalPossibleScore += question.marks;
             });
 
-            const percentageScore = (totalScore / totalPossibleScore) * 100;
+            const percentageScore = Math.round((totalScore / totalPossibleScore) * 100);
 
             // Clear localStorage timer data
             localStorage.removeItem(`exam_${params.attemptId}_start`);
@@ -426,14 +424,26 @@ export default function TakeExamPage(
                                 {currentQuestion.questionType === "short_answer" && (
                                     <div className="space-y-3 mt-6">
                                         <Label htmlFor="answer" className="text-base">Your Answer</Label>
-                                        <Input
-                                            id="answer"
-                                            value={responses[currentQuestion.id] || ""}
-                                            onChange={(e) =>
-                                                handleAnswer(currentQuestion.id, e.target.value)
+                                        <RichTextEditor
+                                            content={responses[currentQuestion.id] || ""}
+                                            onChange={(content) =>
+                                                handleAnswer(currentQuestion.id, content)
                                             }
-                                            placeholder="Type your answer here"
-                                            className="w-full p-4"
+                                            placeholder="Type your short answer here..."
+                                        />
+                                    </div>
+                                )}
+
+                                {/* Essay Input */}
+                                {currentQuestion.questionType === "essay" && (
+                                    <div className="space-y-3 mt-6">
+                                        <Label htmlFor="essay" className="text-base">Your Essay</Label>
+                                        <RichTextEditor
+                                            content={responses[currentQuestion.id] || ""}
+                                            onChange={(content) =>
+                                                handleAnswer(currentQuestion.id, content)
+                                            }
+                                            placeholder="Write your essay here..."
                                         />
                                     </div>
                                 )}

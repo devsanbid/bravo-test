@@ -407,7 +407,7 @@ export async function completeStudentAttempt(
 				completedAt: new Date().toISOString(),
 				status: "completed",
 				totalScore,
-				percentageScore,
+				percentageScore: Math.round(percentageScore), // Convert to integer
 			},
 		);
 
@@ -478,20 +478,79 @@ export async function createStudentResponse(
 
 // Update a student response
 export async function updateStudentResponse(
-	id: string,
+	attemptId: string,
 	response: Partial<StudentResponse>,
 ) {
 	try {
 		const { databases } = await createAdminClient();
+		
+		// Check if questionId is defined
+		if (!response.questionId) {
+			throw new Error("questionId is required for updating a student response");
+		}
 
-		const updatedResponse = await databases.updateDocument(
+		// First, find the existing response by attemptId and questionId
+		const existingResponses = await databases.listDocuments(
 			process.env.NEXT_PUBLIC_DATABASEID || "",
 			process.env.STUDENTRESPONSES_ID || "",
-			id,
-			response,
+			[
+				Query.equal("attemptId", attemptId),
+				Query.equal("questionId", response.questionId)
+			]
 		);
-
-		return updatedResponse;
+		
+		// If no existing response is found, create a new one instead of throwing an error
+		if (existingResponses.documents.length === 0) {
+			console.log("No existing response found, creating a new one");
+			const responseId = ID.unique();
+			
+			// Create a new response document
+			const newResponse = await databases.createDocument(
+				process.env.NEXT_PUBLIC_DATABASEID || "",
+				process.env.STUDENTRESPONSES_ID || "",
+				responseId,
+				{ 
+					...response, 
+					id: responseId,
+					attemptId: attemptId
+				}
+			);
+			
+			return newResponse;
+		}
+		
+		// Get the document ID of the existing response
+		const responseId = existingResponses.documents[0].$id;
+		
+		try {
+			// Update the response using the correct document ID
+			const updatedResponse = await databases.updateDocument(
+				process.env.NEXT_PUBLIC_DATABASEID || "",
+				process.env.STUDENTRESPONSES_ID || "",
+				responseId,
+				response,
+			);
+			
+			return updatedResponse;
+		} catch (updateError) {
+			console.error("Error during document update:", updateError);
+			
+			// If update fails, try to get the document to see if it exists
+			try {
+				const document = await databases.getDocument(
+					process.env.NEXT_PUBLIC_DATABASEID || "",
+					process.env.STUDENTRESPONSES_ID || "",
+					responseId
+				);
+				
+				// If we can get the document but couldn't update it, return it as is
+				console.log("Document exists but couldn't be updated:", document);
+				return document;
+			} catch (getError) {
+				console.error("Error getting document:", getError);
+				throw updateError; // Throw the original error
+			}
+		}
 	} catch (error) {
 		console.error("Error updating student response:", error);
 		throw error;

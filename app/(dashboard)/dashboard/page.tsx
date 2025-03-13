@@ -40,31 +40,80 @@ interface AttemptWithMockTest extends StudentAttempt {
     mockTestCategory: string;
 }
 
-const lineChartData = [
-	{ name: "Week 1", score: 6.5 },
-	{ name: "Week 2", score: 7.0 },
-	{ name: "Week 3", score: 6.8 },
-	{ name: "Week 4", score: 7.5 },
-	{ name: "Week 5", score: 7.2 },
-	{ name: "Week 6", score: 7.8 },
-];
+// Function to process attempt data for charts
+const processAttemptsData = (attempts: AttemptWithMockTest[]) => {
+    // Sort attempts by date
+    const sortedAttempts = [...attempts].sort((a, b) => {
+        return new Date(a.completedAt || a.startedAt).getTime() - new Date(b.completedAt || b.startedAt).getTime();
+    });
 
-const barChartData = [
-	{ skill: "Reading", score: 8.0 },
-	{ skill: "Writing", score: 7.5 },
-	{ skill: "Speaking", score: 7.0 },
-	{ skill: "Listening", score: 7.8 },
-];
+    // Get the last 6 attempts for line chart
+    const recentAttempts = sortedAttempts.slice(-6);
+    
+    // Line chart data - progress over time
+    const lineChartData = recentAttempts.map((attempt, index) => {
+        const date = new Date(attempt.completedAt || attempt.startedAt);
+        return {
+            name: `Test ${index + 1}`,
+            score: attempt.totalScore || 0,
+            date: date.toLocaleDateString()
+        };
+    });
 
-const pieChartData = [
-	{ name: "Completed", value: 65 },
-	{ name: "In Progress", value: 25 },
-	{ name: "Not Started", value: 10 },
-];
+    // Calculate skill distribution for bar chart
+    // Group attempts by category
+    const skillScores: Record<string, { total: number, count: number }> = {
+        "Reading": { total: 0, count: 0 },
+        "Writing": { total: 0, count: 0 },
+        "Speaking": { total: 0, count: 0 },
+        "Listening": { total: 0, count: 0 }
+    };
+
+    sortedAttempts.forEach(attempt => {
+        const category = attempt.mockTestCategory;
+        if (category && attempt.totalScore !== undefined) {
+            if (category.includes("Reading")) {
+                skillScores["Reading"].total += attempt.totalScore;
+                skillScores["Reading"].count += 1;
+            } else if (category.includes("Writing")) {
+                skillScores["Writing"].total += attempt.totalScore;
+                skillScores["Writing"].count += 1;
+            } else if (category.includes("Speaking")) {
+                skillScores["Speaking"].total += attempt.totalScore;
+                skillScores["Speaking"].count += 1;
+            } else if (category.includes("Listening")) {
+                skillScores["Listening"].total += attempt.totalScore;
+                skillScores["Listening"].count += 1;
+            }
+        }
+    });
+
+    // Calculate average scores for each skill
+    const barChartData = Object.entries(skillScores).map(([skill, data]) => ({
+        skill,
+        score: data.count > 0 ? +(data.total / data.count).toFixed(1) : 0
+    }));
+
+    // Calculate completion status for pie chart
+    const completedCount = sortedAttempts.filter(a => a.status === "completed").length;
+    const inProgressCount = sortedAttempts.filter(a => a.status === "in_progress").length;
+    const totalTests = attempts.length;
+    
+    const pieChartData = [
+        { name: "Completed", value: completedCount },
+        { name: "In Progress", value: inProgressCount },
+        { name: "Not Started", value: Math.max(0, totalTests - completedCount - inProgressCount) }
+    ];
+
+    return { lineChartData, barChartData, pieChartData };
+};
 
 const COLORS = ["#f97316", "#4B0082", "#6E59A5"];
 
-const Reports = () => (
+const Reports = ({ attempts }: { attempts: AttemptWithMockTest[] }) => {
+    const { pieChartData } = processAttemptsData(attempts);
+    
+    return (
 	<div className="space-y-6">
 		<div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
 			<Card>
@@ -148,9 +197,13 @@ const Reports = () => (
 			</Card>
 		</div>
 	</div>
-);
+    );
+};
 
-const Analytics = () => (
+const Analytics = ({ attempts }: { attempts: AttemptWithMockTest[] }) => {
+    const { lineChartData, barChartData } = processAttemptsData(attempts);
+    
+    return (
 	<div className="space-y-6">
 		<div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
 			<Card>
@@ -209,69 +262,137 @@ const Analytics = () => (
 			</Card>
 		</div>
 	</div>
-);
+    );
+};
 
 export default function DashboardPage() {
 	const router = useRouter();
-    const { user,checkUser } = useAuthStore();
+    const { user, checkUser } = useAuthStore();
     const [attempts, setAttempts] = useState<AttemptWithMockTest[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
         const fetchAttempts = async() => {
-
             try{
                 if(!user) {
-                await checkUser();
+                    await checkUser();
                 }
-                if(user){
+                
+                // Make sure user is defined and has an id before proceeding
+                if(user && user.id){
                     const studentId = user.id;
 
-                    const attemptsData = await getStudentAttemptsByUserId(studentId);
+                    // Fetch attempts only if studentId is defined
+                    if (studentId) {
+                        const attemptsData = await getStudentAttemptsByUserId(studentId);
 
-                    const attemptsWithMockTest: AttemptWithMockTest[] = await Promise.all(
-                        attemptsData.map(async (attempt) => {
-                            const mockTest = await getMockTestById(attempt.mockTestId);
-                            return {
-                                id: attempt.$id,
-                                userId: attempt.userId,
-                                mockTestId: attempt.mockTestId,
-                                startedAt: attempt.startedAt,
-                                completedAt: attempt.completedAt,
-                                status: attempt.status,
-                                totalScore: attempt.totalScore,
-                                percentageScore: attempt.percentageScore,
-                                mockTestName: mockTest.name,
-                                mockTestCategory: mockTest.category
-                            }
-                        })
-                    )
-                    setAttempts(attemptsWithMockTest);
+                        // Process attempts only if we got data back
+                        if (attemptsData && attemptsData.length > 0) {
+                            const attemptsWithMockTest: AttemptWithMockTest[] = await Promise.all(
+                                attemptsData.map(async (attempt) => {
+                                    const mockTest = await getMockTestById(attempt.mockTestId);
+                                    return {
+                                        id: attempt.$id,
+                                        userId: attempt.userId,
+                                        mockTestId: attempt.mockTestId,
+                                        startedAt: attempt.startedAt,
+                                        completedAt: attempt.completedAt,
+                                        status: attempt.status,
+                                        totalScore: attempt.totalScore,
+                                        percentageScore: attempt.percentageScore,
+                                        mockTestName: mockTest.name,
+                                        mockTestCategory: mockTest.category
+                                    }
+                                })
+                            );
+                            setAttempts(attemptsWithMockTest);
+                        } else {
+                            // If no attempts found, set empty array
+                            setAttempts([]);
+                        }
+                    }
+                } else {
+                    // If no user, set empty array for attempts
+                    setAttempts([]);
                 }
-
-
             } catch (error: any) {
+                console.error("Error fetching attempts:", error);
                 setError(error.message);
-
             } finally {
-                setLoading(false)
+                setLoading(false);
             }
         }
         fetchAttempts();
-    }, [])
+    }, [user, checkUser]);
 
-     if (loading) {
+    // Calculate stats for overview cards
+    const calculateStats = () => {
+        if (!attempts || attempts.length === 0) {
+            return {
+                totalTests: 0,
+                averageScore: 0,
+                completedTests: 0,
+                inProgressTests: 0
+            };
+        }
+
+        const completedAttempts = attempts.filter(a => a.status === "completed");
+        const totalScore = completedAttempts.reduce((sum, a) => sum + (a.totalScore || 0), 0);
+        const averageScore = completedAttempts.length > 0 ? (totalScore / completedAttempts.length).toFixed(1) : 0;
+        
+        return {
+            totalTests: attempts.length,
+            averageScore,
+            completedTests: completedAttempts.length,
+            inProgressTests: attempts.filter(a => a.status === "in_progress").length
+        };
+    };
+
+    const stats = calculateStats();
+
+    // Calculate skill scores for progress bars
+    const calculateSkillScores = () => {
+        if (!attempts || attempts.length === 0) {
+            return {
+                reading: { score: 0, percentage: 0 },
+                writing: { score: 0, percentage: 0 },
+                speaking: { score: 0, percentage: 0 },
+                listening: { score: 0, percentage: 0 }
+            };
+        }
+
+        const { barChartData } = processAttemptsData(attempts);
+        
+        const getSkillData = (skillName: string) => {
+            const skill = barChartData.find(item => item.skill === skillName);
+            const score = skill ? skill.score : 0;
+            // Convert score to percentage (assuming max score is 10)
+            const percentage = score * 10;
+            return { score, percentage };
+        };
+
+        return {
+            reading: getSkillData("Reading"),
+            writing: getSkillData("Writing"),
+            speaking: getSkillData("Speaking"),
+            listening: getSkillData("Listening")
+        };
+    };
+
+    const skillScores = calculateSkillScores();
+
+    if (loading) {
 		return (
 			<div className="flex items-center justify-center min-h-screen">
 				Loading...
 			</div>
 		);
 	}
+    
     if (error) {
         return <div>Error: {error}</div>;
     }
-
 
 	return (
 		<div className="h-full p-6 space-y-6">
@@ -307,9 +428,9 @@ export default function DashboardPage() {
 								<div>
 									<p className="text-sm text-gray-500">Total Practice Tests</p>
 									<div className="flex items-end gap-2">
-										<h2 className="text-2xl font-bold">24</h2>
+										<h2 className="text-2xl font-bold">{stats.totalTests}</h2>
 										<span className="text-xs text-green-500">
-											+2 from last week
+											{stats.completedTests} completed
 										</span>
 									</div>
 								</div>
@@ -322,11 +443,11 @@ export default function DashboardPage() {
 									<Clock className="h-6 w-6 text-brand-purple" />
 								</div>
 								<div>
-									<p className="text-sm text-gray-500">Study Hours</p>
+									<p className="text-sm text-gray-500">Tests In Progress</p>
 									<div className="flex items-end gap-2">
-										<h2 className="text-2xl font-bold">56h</h2>
-										<span className="text-xs text-green-500">
-											+8h from last week
+										<h2 className="text-2xl font-bold">{stats.inProgressTests}</h2>
+										<span className="text-xs text-amber-500">
+											{stats.inProgressTests > 0 ? "Continue your tests" : "All tests completed"}
 										</span>
 									</div>
 								</div>
@@ -341,9 +462,9 @@ export default function DashboardPage() {
 								<div>
 									<p className="text-sm text-gray-500">Average Score</p>
 									<div className="flex items-end gap-2">
-										<h2 className="text-2xl font-bold">7.5</h2>
+										<h2 className="text-2xl font-bold">{stats.averageScore}</h2>
 										<span className="text-xs text-green-500">
-											+0.5 from last test
+											{Number(stats.averageScore) >= 7 ? "Excellent!" : "Keep improving!"}
 										</span>
 									</div>
 								</div>
@@ -375,40 +496,40 @@ export default function DashboardPage() {
 								<div className="space-y-2">
 									<div className="flex justify-between">
 										<span className="text-sm font-medium">Reading</span>
-										<span className="text-sm text-gray-500">8.0</span>
+										<span className="text-sm text-gray-500">{skillScores.reading.score.toFixed(1)}</span>
 									</div>
 									<Progress
-										value={80}
+										value={skillScores.reading.percentage}
 										className="bg-gray-100 h-2"
 									/>
 								</div>
 								<div className="space-y-2">
 									<div className="flex justify-between">
 										<span className="text-sm font-medium">Listening</span>
-										<span className="text-sm text-gray-500">7.5</span>
+										<span className="text-sm text-gray-500">{skillScores.listening.score.toFixed(1)}</span>
 									</div>
 									<Progress
-										value={75}
+										value={skillScores.listening.percentage}
 										className="bg-gray-100 h-2"
 									/>
 								</div>
 								<div className="space-y-2">
 									<div className="flex justify-between">
 										<span className="text-sm font-medium">Writing</span>
-										<span className="text-sm text-gray-500">6.5</span>
+										<span className="text-sm text-gray-500">{skillScores.writing.score.toFixed(1)}</span>
 									</div>
 									<Progress
-										value={65}
+										value={skillScores.writing.percentage}
 										className="bg-gray-100 h-2"
 									/>
 								</div>
 								<div className="space-y-2">
 									<div className="flex justify-between">
 										<span className="text-sm font-medium">Speaking</span>
-										<span className="text-sm text-gray-500">7.0</span>
+										<span className="text-sm text-gray-500">{skillScores.speaking.score.toFixed(1)}</span>
 									</div>
 									<Progress
-										value={70}
+										value={skillScores.speaking.percentage}
 										className="bg-gray-100 h-2"
 									/>
 								</div>
@@ -416,48 +537,54 @@ export default function DashboardPage() {
 						</Card>
 
 						<Card className="p-6">
-							<h3 className="text-xl font-bold mb-4">Upcoming Tests</h3>
-							<p className="text-sm text-gray-500 mb-4">
-								You have 3 tests scheduled this week
-							</p>
-							<div className="space-y-4">
-								<div className="flex items-center justify-between">
-									<div>
-										<h4 className="font-medium">IELTS Mock Test</h4>
-										<p className="text-sm text-gray-500">Thursday, 2:00 PM</p>
-									</div>
-									<Badge className="bg-purple-100 text-brand-purple hover:bg-purple-100">
-										Academic
-									</Badge>
+							<h3 className="text-xl font-bold mb-4">Recent Test Attempts</h3>
+							{attempts.length === 0 ? (
+								<p className="text-sm text-gray-500 mb-4">
+									You haven't taken any tests yet
+								</p>
+							) : (
+								<div className="space-y-4">
+									{attempts.slice(-3).map((attempt) => (
+										<div key={attempt.id} className="flex items-center justify-between">
+											<div>
+												<h4 className="font-medium">{attempt.mockTestName || "Mock Test"}</h4>
+												<p className="text-sm text-gray-500">
+													{new Date(attempt.completedAt || attempt.startedAt).toLocaleDateString()}
+												</p>
+											</div>
+											<Badge 
+												className={
+													attempt.status === "completed" 
+														? "bg-green-100 text-green-800 hover:bg-green-100" 
+														: "bg-amber-100 text-amber-800 hover:bg-amber-100"
+												}
+											>
+												{attempt.status === "completed" 
+													? `${attempt.percentageScore || 0}%` 
+													: "In Progress"}
+											</Badge>
+										</div>
+									))}
+									{attempts.length > 3 && (
+										<Button 
+											variant="outline" 
+											className="w-full mt-2"
+											onClick={() => router.push('/dashboard/mock-tests')}
+										>
+											View All Tests
+										</Button>
+									)}
 								</div>
-								<div className="flex items-center justify-between">
-									<div>
-										<h4 className="font-medium">PTE Practice</h4>
-										<p className="text-sm text-gray-500">Friday, 10:00 AM</p>
-									</div>
-									<Badge className="bg-orange-100 text-brand-orange hover:bg-orange-100">
-										General
-									</Badge>
-								</div>
-								<div className="flex items-center justify-between">
-									<div>
-										<h4 className="font-medium">Speaking Session</h4>
-										<p className="text-sm text-gray-500">Saturday, 3:30 PM</p>
-									</div>
-									<Badge className="bg-blue-100 text-blue-700 hover:bg-blue-100">
-										One-on-One
-									</Badge>
-								</div>
-							</div>
+							)}
 						</Card>
 					</div>
 				</TabsContent>
 				<TabsContent value="analytics" className="space-y-6">
-
+					<Analytics attempts={attempts} />
 				</TabsContent>
 
 				<TabsContent value="reports" className="space-y-6">
-
+					<Reports attempts={attempts} />
 				</TabsContent>
 			</Tabs>
 		</div>

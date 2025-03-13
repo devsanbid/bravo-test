@@ -103,6 +103,10 @@ export default function ResultsPage(
           
           if (!response) {
             unanswered++;
+          } else if (question.questionType === "essay" || question.questionType === "short_answer") {
+            // For essay and short answer questions, they will be marked later by a moderator
+            // Don't count them as correct or incorrect yet
+            // We'll display them separately in the UI
           } else if (question.questionType === "multiple_choice") {
             // For multiple choice, check if the selected option is correct
             const correctOption = Array.isArray(question.options) 
@@ -128,8 +132,12 @@ export default function ResultsPage(
               
             if (responseValue === correctValue) {
               correct++;
+              // Mark the response as correct for display purposes
+              response.isCorrect = true;
             } else {
               incorrect++;
+              // Mark the response as incorrect for display purposes
+              response.isCorrect = false;
             }
           } else {
             // For other question types, use the isCorrect flag if available
@@ -502,6 +510,7 @@ export default function ResultsPage(
               const response = responses.find(r => r.questionId === question.id);
               const isCorrect = response?.isCorrect;
               const userAnswer = response?.response;
+              const isWritingQuestion = question.questionType === "essay" || question.questionType === "short_answer";
               
               // Find correct answer
               let correctAnswer = "";
@@ -531,9 +540,15 @@ export default function ResultsPage(
                   <div className="flex justify-between items-start mb-3">
                     <div className="flex items-center gap-2">
                       <span className="font-semibold">Question {index + 1}</span>
-                      <Badge variant={isCorrect ? "default" : userAnswer ? "destructive" : "outline"}>
-                        {isCorrect ? "Correct" : userAnswer ? "Incorrect" : "Unanswered"}
-                      </Badge>
+                      {isWritingQuestion ? (
+                        <Badge variant="secondary" className="bg-blue-100 text-blue-800 hover:bg-blue-100">
+                          Marks Given Later
+                        </Badge>
+                      ) : (
+                        <Badge variant={isCorrect ? "default" : userAnswer ? "destructive" : "outline"}>
+                          {isCorrect ? "Correct" : userAnswer ? "Incorrect" : "Unanswered"}
+                        </Badge>
+                      )}
                     </div>
                     <Badge variant="outline">{question.marks} {question.marks === 1 ? "mark" : "marks"}</Badge>
                   </div>
@@ -554,9 +569,15 @@ export default function ResultsPage(
                     
                     <div>
                       <p className="text-sm font-medium mb-1">Correct Answer:</p>
-                      <div className="p-3 rounded-md bg-green-50 border border-green-200">
-                        <p className="text-sm">{correctAnswer}</p>
-                      </div>
+                      {isWritingQuestion ? (
+                        <div className="p-3 rounded-md bg-blue-50 border border-blue-200">
+                          <p className="text-sm italic">Writing questions are evaluated by moderators. Marks will be given later.</p>
+                        </div>
+                      ) : (
+                        <div className="p-3 rounded-md bg-green-50 border border-green-200">
+                          <p className="text-sm">{correctAnswer}</p>
+                        </div>
+                      )}
                     </div>
                   </div>
                   
