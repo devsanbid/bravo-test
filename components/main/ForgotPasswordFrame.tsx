@@ -20,7 +20,6 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { supabase } from "@/lib/supabase/client";
 import { toast } from "sonner";
 
 const emailSchema = z.object({
@@ -80,23 +79,7 @@ export default function ForgotPasswordForm() {
   });
 
   async function onEmailSubmit(values: z.infer<typeof emailSchema>) {
-    try {
-      setIsLoading(true);
-      const { error } = await supabase.auth.resetPasswordForEmail(values.email, {
-        redirectTo: `${window.location.origin}/reset-password`,
-      });
 
-      if (error) throw error;
-
-      setEmail(values.email);
-      setStep(2);
-      toast.success("Reset password link sent to your email!");
-    } catch (error) {
-      toast.error("Failed to send reset password email");
-      console.error("Reset password error:", error);
-    } finally {
-      setIsLoading(false);
-    }
   }
 
   async function onVerificationSubmit(values: z.infer<typeof verificationSchema>) {
@@ -105,22 +88,6 @@ export default function ForgotPasswordForm() {
   }
 
   async function onPasswordSubmit(values: z.infer<typeof passwordSchema>) {
-    try {
-      setIsLoading(true);
-      const { error } = await supabase.auth.updateUser({
-        password: values.password,
-      });
-
-      if (error) throw error;
-
-      toast.success("Password updated successfully!");
-      router.push("/login");
-    } catch (error) {
-      toast.error("Failed to update password");
-      console.error("Password update error:", error);
-    } finally {
-      setIsLoading(false);
-    }
   }
 
   // Handle input focus for verification code
