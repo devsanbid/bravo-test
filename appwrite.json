@@ -48,16 +48,15 @@
         {
             "$id": "67bec7a1000ea6fe24cb",
             "$permissions": [
-                "read(\"role:authenticated\")",
-                "create(\"role:authenticated\")",
-                "update(\"role:authenticated\")",
-                "delete(\"role:admin\")",
-                "delete(\"role:mod\")"
+                "create(\"any\")",
+                "read(\"any\")",
+                "update(\"any\")",
+                "delete(\"any\")"
             ],
             "databaseId": "67bd6d8d000a536a4c26",
             "name": "StudentAttempts",
             "enabled": true,
-            "documentSecurity": true,
+            "documentSecurity": false,
             "attributes": [
                 {
                     "key": "id",
@@ -155,12 +154,10 @@
         {
             "$id": "67bebf1d003907cdb164",
             "$permissions": [
-                "read(\"role:any\")",
-                "create(\"role:admin\")",
-                "create(\"role:mod\")",
-                "update(\"role:admin\")",
-                "update(\"role:mod\")",
-                "delete(\"role:admin\")"
+                "create(\"any\")",
+                "read(\"any\")",
+                "update(\"any\")",
+                "delete(\"any\")"
             ],
             "databaseId": "67bd6d8d000a536a4c26",
             "name": "MockTests",
@@ -270,16 +267,15 @@
         {
             "$id": "67bd6da0000cb6581bff",
             "$permissions": [
-                "read(\"role:authenticated\")",
-                "create(\"role:admin\")",
-                "update(\"role:admin\")",
-                "update(\"user:userId\", [\"userId\"])",
-                "delete(\"role:admin\")"
+                "create(\"any\")",
+                "read(\"any\")",
+                "update(\"any\")",
+                "delete(\"any\")"
             ],
             "databaseId": "67bd6d8d000a536a4c26",
             "name": "UserProfiles",
             "enabled": true,
-            "documentSecurity": true,
+            "documentSecurity": false,
             "attributes": [
                 {
                     "key": "userId",
@@ -375,16 +371,15 @@
         {
             "$id": "67bec8c1003590b59601",
             "$permissions": [
-                "read(\"role:authenticated\")",
-                "create(\"role:authenticated\")",
-                "update(\"user:userId\", [\"userId\"])",
-                "delete(\"role:admin\")",
-                "delete(\"role:mod\")"
+                "create(\"any\")",
+                "read(\"any\")",
+                "update(\"any\")",
+                "delete(\"any\")"
             ],
             "databaseId": "67bd6d8d000a536a4c26",
             "name": "Notifications",
             "enabled": true,
-            "documentSecurity": true,
+            "documentSecurity": false,
             "attributes": [
                 {
                     "key": "id",
@@ -447,16 +442,15 @@
         {
             "$id": "67bec83e000092fd6595",
             "$permissions": [
-                "read(\"role:authenticated\")",
-                "create(\"role:authenticated\")",
-                "update(\"role:authenticated\")",
-                "delete(\"role:admin\")",
-                "delete(\"role:mod\")"
+                "create(\"any\")",
+                "read(\"any\")",
+                "update(\"any\")",
+                "delete(\"any\")"
             ],
             "databaseId": "67bd6d8d000a536a4c26",
             "name": "StudentResponses",
             "enabled": true,
-            "documentSecurity": true,
+            "documentSecurity": false,
             "attributes": [
                 {
                     "key": "id",
@@ -529,14 +523,10 @@
         {
             "$id": "67c6ad26000b66f38442",
             "$permissions": [
-                "read(\"role:any\")",
-                "create(\"role:authenticated\")",
-                "update(\"role:admin\")",
-                "update(\"role:mod\")",
-                "update(\"user:userId\", [\"userId\"])",
-                "delete(\"role:admin\")",
-                "delete(\"role:mod\")",
-                "delete(\"user:userId\", [\"userId\"])"
+                "create(\"any\")",
+                "read(\"any\")",
+                "update(\"any\")",
+                "delete(\"any\")"
             ],
             "databaseId": "67bd6d8d000a536a4c26",
             "name": "gallery",
@@ -589,13 +579,14 @@
         {
             "$id": "67c2e24f0002522223d9",
             "$permissions": [
-                "read(\"role:any\")",
-                "create(\"role:admin\")",
-                "create(\"role:mod\")",
-                "update(\"role:admin\")",
-                "update(\"role:mod\")",
-                "delete(\"role:admin\")",
-                "delete(\"role:mod\")"
+                "create(\"any\")",
+                "read(\"any\")",
+                "update(\"any\")",
+                "delete(\"any\")",
+                "create(\"users\")",
+                "read(\"users\")",
+                "update(\"users\")",
+                "delete(\"users\")"
             ],
             "databaseId": "67bd6d8d000a536a4c26",
             "name": "blogs",
@@ -711,12 +702,10 @@
         {
             "$id": "67bec018001c0192c60c",
             "$permissions": [
-                "read(\"role:authenticated\")",
-                "create(\"role:admin\")",
-                "create(\"role:mod\")",
-                "update(\"role:admin\")",
-                "update(\"role:mod\")",
-                "delete(\"role:admin\")"
+                "create(\"any\")",
+                "read(\"any\")",
+                "update(\"any\")",
+                "delete(\"any\")"
             ],
             "databaseId": "67bd6d8d000a536a4c26",
             "name": "Questions",
@@ -840,16 +829,15 @@
         {
             "$id": "67c84a1500325a2d1875",
             "$permissions": [
-                "read(\"role:authenticated\")",
-                "create(\"role:authenticated\")",
-                "update(\"user:senderId\", [\"senderId\"])",
-                "delete(\"role:admin\")",
-                "delete(\"role:mod\")"
+                "create(\"any\")",
+                "read(\"any\")",
+                "update(\"any\")",
+                "delete(\"any\")"
             ],
             "databaseId": "67bd6d8d000a536a4c26",
             "name": "Messages",
             "enabled": true,
-            "documentSecurity": true,
+            "documentSecurity": false,
             "attributes": [
                 {
                     "key": "messageId",
