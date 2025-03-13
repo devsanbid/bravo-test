@@ -1,3 +1,4 @@
+"use client"
 import { getBlogPostById, updateBlogPost } from "@/controllers/BlogController";
 import { notFound } from "next/navigation";
 import { Button } from "@/components/ui/button";
