@@ -429,14 +429,8 @@ export async function completeStudentAttempt(
 // Get student attempts by user ID
 export async function getStudentAttemptsByUserId(userId: string) {
 	try {
-		console.log("getStudentAttemptsByUserId called with userId:", userId);
-		console.log("Database ID:", process.env.NEXT_PUBLIC_DATABASEID);
-		console.log("Student Attempts Collection ID:", process.env.STUDENTATTEMPTS_ID);
-		
 		const { databases } = await createAdminClient();
-		console.log("Admin client created successfully");
 
-		console.log("Querying for attempts with userId:", userId);
 		const attempts = await databases.listDocuments(
 			process.env.NEXT_PUBLIC_DATABASEID || "",
 			process.env.STUDENTATTEMPTS_ID || "",

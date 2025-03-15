@@ -1,5 +1,4 @@
 "use client";
-import { useAuthStore } from "@/lib/stores/authStore";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -8,6 +7,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { useAuthStore } from "@/lib/stores/auth_store";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -21,7 +21,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { toast } from "sonner";
-import { login, getCurrentUser } from "@/controllers/AuthController"; // Import functions directly
+import {  login } from "@/controllers/AuthController"; // Import functions directly
 
 const formSchema = z.object({
 	email: z.string().email("Invalid email address"),
@@ -31,7 +31,7 @@ const formSchema = z.object({
 export default function LoginForm() {
 	const router = useRouter();
 	const [isLoading, setIsLoading] = useState(false);
-	const { setUser } = useAuthStore();
+	const { setAuth, getCurrentUser } = useAuthStore();
 
 	const form = useForm<z.infer<typeof formSchema>>({
 		resolver: zodResolver(formSchema),
@@ -45,15 +45,14 @@ export default function LoginForm() {
 		try {
 			setIsLoading(true);
 
-			// Login using the controller function
-			await login(values.email, values.password);
-			
-			// Get the updated user and check role for explicit redirect
-			const currentUser = await getCurrentUser();
-			
-			// Explicitly redirect based on role
-			if (currentUser?.profile?.role) {
-				const role = currentUser.profile.role;
+			const { userData, token } = await login(values.email, values.password);
+			setAuth(token);
+
+     const currentUser = await getCurrentUser(); 
+
+      // Explicitly redirect based on role
+			if (currentUser?.role) {
+				const role = currentUser.role;
 				console.log("Login successful, user role:", role);
 				switch (role) {
 					case "student":
@@ -73,7 +72,8 @@ export default function LoginForm() {
 				// Default redirect if role not found
 				router.push("/dashboard");
 			}
-			
+
+			console.log("currentUser: ", await getCurrentUser());
 			toast.success("Login successful!");
 		} catch (error) {
 			toast.error("Invalid email or password");

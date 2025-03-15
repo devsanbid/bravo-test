@@ -29,403 +29,422 @@ import {
 	Pie,
 	Cell,
 } from "recharts";
-import { LogoutButton } from "@/components/main/LogoutButton";
-import { useAuthStore } from "@/lib/stores/authStore";
-import { getStudentAttemptsByUserId, getMockTestById } from "@/controllers/MockTestController";
+import { useAuthStore } from "@/lib/stores/auth_store";
+import {
+	getStudentAttemptsByUserId,
+	getMockTestById,
+} from "@/controllers/MockTestController";
 import { useEffect, useState } from "react";
-import { StudentAttempt } from "@/lib/types/mock-test";
+import type { StudentAttempt } from "@/lib/types/mock-test";
+import { getCurrentUser } from "@/controllers/AuthController";
 
 interface AttemptWithMockTest extends StudentAttempt {
-    mockTestName: string;
-    mockTestCategory: string;
+	mockTestName: string;
+	mockTestCategory: string;
 }
 
 // Function to process attempt data for charts
 const processAttemptsData = (attempts: AttemptWithMockTest[]) => {
-    // Sort attempts by date
-    const sortedAttempts = [...attempts].sort((a, b) => {
-        return new Date(a.completedAt || a.startedAt).getTime() - new Date(b.completedAt || b.startedAt).getTime();
-    });
+	// Sort attempts by date
+	const sortedAttempts = [...attempts].sort((a, b) => {
+		return (
+			new Date(a.completedAt || a.startedAt).getTime() -
+			new Date(b.completedAt || b.startedAt).getTime()
+		);
+	});
 
-    // Get the last 6 attempts for line chart
-    const recentAttempts = sortedAttempts.slice(-6);
-    
-    // Line chart data - progress over time
-    const lineChartData = recentAttempts.map((attempt, index) => {
-        const date = new Date(attempt.completedAt || attempt.startedAt);
-        return {
-            name: `Test ${index + 1}`,
-            score: attempt.totalScore || 0,
-            date: date.toLocaleDateString()
-        };
-    });
+	// Get the last 6 attempts for line chart
+	const recentAttempts = sortedAttempts.slice(-6);
 
-    // Calculate skill distribution for bar chart
-    // Group attempts by category
-    const skillScores: Record<string, { total: number, count: number }> = {
-        "Reading": { total: 0, count: 0 },
-        "Writing": { total: 0, count: 0 },
-        "Speaking": { total: 0, count: 0 },
-        "Listening": { total: 0, count: 0 }
-    };
+	// Line chart data - progress over time
+	const lineChartData = recentAttempts.map((attempt, index) => {
+		const date = new Date(attempt.completedAt || attempt.startedAt);
+		return {
+			name: `Test ${index + 1}`,
+			score: attempt.totalScore || 0,
+			date: date.toLocaleDateString(),
+		};
+	});
 
-    sortedAttempts.forEach(attempt => {
-        const category = attempt.mockTestCategory;
-        if (category && attempt.totalScore !== undefined) {
-            if (category.includes("Reading")) {
-                skillScores["Reading"].total += attempt.totalScore;
-                skillScores["Reading"].count += 1;
-            } else if (category.includes("Writing")) {
-                skillScores["Writing"].total += attempt.totalScore;
-                skillScores["Writing"].count += 1;
-            } else if (category.includes("Speaking")) {
-                skillScores["Speaking"].total += attempt.totalScore;
-                skillScores["Speaking"].count += 1;
-            } else if (category.includes("Listening")) {
-                skillScores["Listening"].total += attempt.totalScore;
-                skillScores["Listening"].count += 1;
-            }
-        }
-    });
+	// Calculate skill distribution for bar chart
+	// Group attempts by category
+	const skillScores: Record<string, { total: number; count: number }> = {
+		Reading: { total: 0, count: 0 },
+		Writing: { total: 0, count: 0 },
+		Speaking: { total: 0, count: 0 },
+		Listening: { total: 0, count: 0 },
+	};
 
-    // Calculate average scores for each skill
-    const barChartData = Object.entries(skillScores).map(([skill, data]) => ({
-        skill,
-        score: data.count > 0 ? +(data.total / data.count).toFixed(1) : 0
-    }));
+	sortedAttempts.forEach((attempt) => {
+		const category = attempt.mockTestCategory;
+		if (category && attempt.totalScore !== undefined) {
+			if (category.includes("Reading")) {
+				skillScores["Reading"].total += attempt.totalScore;
+				skillScores["Reading"].count += 1;
+			} else if (category.includes("Writing")) {
+				skillScores["Writing"].total += attempt.totalScore;
+				skillScores["Writing"].count += 1;
+			} else if (category.includes("Speaking")) {
+				skillScores["Speaking"].total += attempt.totalScore;
+				skillScores["Speaking"].count += 1;
+			} else if (category.includes("Listening")) {
+				skillScores["Listening"].total += attempt.totalScore;
+				skillScores["Listening"].count += 1;
+			}
+		}
+	});
 
-    // Calculate completion status for pie chart
-    const completedCount = sortedAttempts.filter(a => a.status === "completed").length;
-    const inProgressCount = sortedAttempts.filter(a => a.status === "in_progress").length;
-    const totalTests = attempts.length;
-    
-    const pieChartData = [
-        { name: "Completed", value: completedCount },
-        { name: "In Progress", value: inProgressCount },
-        { name: "Not Started", value: Math.max(0, totalTests - completedCount - inProgressCount) }
-    ];
+	// Calculate average scores for each skill
+	const barChartData = Object.entries(skillScores).map(([skill, data]) => ({
+		skill,
+		score: data.count > 0 ? +(data.total / data.count).toFixed(1) : 0,
+	}));
 
-    return { lineChartData, barChartData, pieChartData };
+	// Calculate completion status for pie chart
+	const completedCount = sortedAttempts.filter(
+		(a) => a.status === "completed",
+	).length;
+	const inProgressCount = sortedAttempts.filter(
+		(a) => a.status === "in_progress",
+	).length;
+	const totalTests = attempts.length;
+
+	const pieChartData = [
+		{ name: "Completed", value: completedCount },
+		{ name: "In Progress", value: inProgressCount },
+		{
+			name: "Not Started",
+			value: Math.max(0, totalTests - completedCount - inProgressCount),
+		},
+	];
+
+	return { lineChartData, barChartData, pieChartData };
 };
 
 const COLORS = ["#f97316", "#4B0082", "#6E59A5"];
 
 const Reports = ({ attempts }: { attempts: AttemptWithMockTest[] }) => {
-    const { pieChartData } = processAttemptsData(attempts);
-    
-    return (
-	<div className="space-y-6">
-		<div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-			<Card>
-				<CardHeader>
-					<CardTitle className="flex items-center gap-2">
-						<PieChart className="h-5 w-5 text-brand-orange" />
-						Course Completion Status
-					</CardTitle>
-				</CardHeader>
-				<CardContent>
-					<div className="h-[300px]">
-						<ResponsiveContainer width="100%" height="100%">
-							<RechartsePieChart>
-								<Pie
-									data={pieChartData}
-									cx="50%"
-									cy="50%"
-									innerRadius={60}
-									outerRadius={80}
-									fill="#8884d8"
-									paddingAngle={5}
-									dataKey="value"
-								>
-									{pieChartData.map((entry, index) => (
-										<Cell
-											key={`cell-${index}`}
-											fill={COLORS[index % COLORS.length]}
-										/>
-									))}
-								</Pie>
-								<Tooltip />
-							</RechartsePieChart>
-						</ResponsiveContainer>
-					</div>
-					<div className="flex justify-center gap-4 mt-4">
-						{pieChartData.map((entry, index) => (
-							<div key={entry.name} className="flex items-center gap-2">
-								<div
-									className="w-3 h-3 rounded-full"
-									style={{ backgroundColor: COLORS[index] }}
-								/>
-								<span className="text-sm">{entry.name}</span>
-							</div>
-						))}
-					</div>
-				</CardContent>
-			</Card>
+	const { pieChartData } = processAttemptsData(attempts);
 
-			<Card>
-				<CardHeader>
-					<CardTitle className="flex items-center gap-2">
-						<TrendingDown className="h-5 w-5 text-brand-orange" />
-						Areas for Improvement
-					</CardTitle>
-				</CardHeader>
-				<CardContent>
-					<div className="space-y-4">
-						{[
-							{ skill: "Grammar Usage", score: 65 },
-							{ skill: "Vocabulary Range", score: 72 },
-							{ skill: "Speaking Fluency", score: 68 },
-							{ skill: "Writing Structure", score: 70 },
-						].map((item) => (
-							<div key={item.skill} className="space-y-2">
-								<div className="flex justify-between">
-									<span className="text-sm font-medium">{item.skill}</span>
-									<span className="text-sm text-muted-foreground">
-										{item.score}%
-									</span>
-								</div>
-								<div className="h-2 rounded-full bg-gray-100">
+	return (
+		<div className="space-y-6">
+			<div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+				<Card>
+					<CardHeader>
+						<CardTitle className="flex items-center gap-2">
+							<PieChart className="h-5 w-5 text-brand-orange" />
+							Course Completion Status
+						</CardTitle>
+					</CardHeader>
+					<CardContent>
+						<div className="h-[300px]">
+							<ResponsiveContainer width="100%" height="100%">
+								<RechartsePieChart>
+									<Pie
+										data={pieChartData}
+										cx="50%"
+										cy="50%"
+										innerRadius={60}
+										outerRadius={80}
+										fill="#8884d8"
+										paddingAngle={5}
+										dataKey="value"
+									>
+										{pieChartData.map((entry, index) => (
+											<Cell
+												key={`cell-${index}`}
+												fill={COLORS[index % COLORS.length]}
+											/>
+										))}
+									</Pie>
+									<Tooltip />
+								</RechartsePieChart>
+							</ResponsiveContainer>
+						</div>
+						<div className="flex justify-center gap-4 mt-4">
+							{pieChartData.map((entry, index) => (
+								<div key={entry.name} className="flex items-center gap-2">
 									<div
-										className="h-full rounded-full bg-brand-orange"
-										style={{ width: `${item.score}%` }}
+										className="w-3 h-3 rounded-full"
+										style={{ backgroundColor: COLORS[index] }}
 									/>
+									<span className="text-sm">{entry.name}</span>
 								</div>
-							</div>
-						))}
-					</div>
-				</CardContent>
-			</Card>
+							))}
+						</div>
+					</CardContent>
+				</Card>
+
+				<Card>
+					<CardHeader>
+						<CardTitle className="flex items-center gap-2">
+							<TrendingDown className="h-5 w-5 text-brand-orange" />
+							Areas for Improvement
+						</CardTitle>
+					</CardHeader>
+					<CardContent>
+						<div className="space-y-4">
+							{[
+								{ skill: "Grammar Usage", score: 65 },
+								{ skill: "Vocabulary Range", score: 72 },
+								{ skill: "Speaking Fluency", score: 68 },
+								{ skill: "Writing Structure", score: 70 },
+							].map((item) => (
+								<div key={item.skill} className="space-y-2">
+									<div className="flex justify-between">
+										<span className="text-sm font-medium">{item.skill}</span>
+										<span className="text-sm text-muted-foreground">
+											{item.score}%
+										</span>
+									</div>
+									<div className="h-2 rounded-full bg-gray-100">
+										<div
+											className="h-full rounded-full bg-brand-orange"
+											style={{ width: `${item.score}%` }}
+										/>
+									</div>
+								</div>
+							))}
+						</div>
+					</CardContent>
+				</Card>
+			</div>
 		</div>
-	</div>
-    );
+	);
 };
 
 const Analytics = ({ attempts }: { attempts: AttemptWithMockTest[] }) => {
-    const { lineChartData, barChartData } = processAttemptsData(attempts);
-    
-    return (
-	<div className="space-y-6">
-		<div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-			<Card>
-				<CardHeader>
-					<CardTitle className="flex items-center gap-2">
-						<TrendingUp className="h-5 w-5 text-brand-orange" />
-						Progress Over Time
-					</CardTitle>
-				</CardHeader>
-				<CardContent>
-					<div className="h-[300px]">
-						<ResponsiveContainer width="100%" height="100%">
-							<LineChart
-								data={lineChartData}
-								margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
-							>
-								<CartesianGrid strokeDasharray="3 3" />
-								<XAxis dataKey="name" />
-								<YAxis />
-								<Tooltip />
-								<Line
-									type="monotone"
-									dataKey="score"
-									stroke="#f97316"
-									strokeWidth={2}
-								/>
-							</LineChart>
-						</ResponsiveContainer>
-					</div>
-				</CardContent>
-			</Card>
+	const { lineChartData, barChartData } = processAttemptsData(attempts);
 
-			<Card>
-				<CardHeader>
-					<CardTitle className="flex items-center gap-2">
-						<BarChart2 className="h-5 w-5 text-brand-orange" />
-						Skill Distribution
-					</CardTitle>
-				</CardHeader>
-				<CardContent>
-					<div className="h-[300px]">
-						<ResponsiveContainer width="100%" height="100%">
-							<BarChart
-								data={barChartData}
-								margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
-							>
-								<CartesianGrid strokeDasharray="3 3" />
-								<XAxis dataKey="skill" />
-								<YAxis />
-								<Tooltip />
-								<Bar dataKey="score" fill="#4B0082" />
-							</BarChart>
-						</ResponsiveContainer>
-					</div>
-				</CardContent>
-			</Card>
+	return (
+		<div className="space-y-6">
+			<div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+				<Card>
+					<CardHeader>
+						<CardTitle className="flex items-center gap-2">
+							<TrendingUp className="h-5 w-5 text-brand-orange" />
+							Progress Over Time
+						</CardTitle>
+					</CardHeader>
+					<CardContent>
+						<div className="h-[300px]">
+							<ResponsiveContainer width="100%" height="100%">
+								<LineChart
+									data={lineChartData}
+									margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+								>
+									<CartesianGrid strokeDasharray="3 3" />
+									<XAxis dataKey="name" />
+									<YAxis />
+									<Tooltip />
+									<Line
+										type="monotone"
+										dataKey="score"
+										stroke="#f97316"
+										strokeWidth={2}
+									/>
+								</LineChart>
+							</ResponsiveContainer>
+						</div>
+					</CardContent>
+				</Card>
+
+				<Card>
+					<CardHeader>
+						<CardTitle className="flex items-center gap-2">
+							<BarChart2 className="h-5 w-5 text-brand-orange" />
+							Skill Distribution
+						</CardTitle>
+					</CardHeader>
+					<CardContent>
+						<div className="h-[300px]">
+							<ResponsiveContainer width="100%" height="100%">
+								<BarChart
+									data={barChartData}
+									margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+								>
+									<CartesianGrid strokeDasharray="3 3" />
+									<XAxis dataKey="skill" />
+									<YAxis />
+									<Tooltip />
+									<Bar dataKey="score" fill="#4B0082" />
+								</BarChart>
+							</ResponsiveContainer>
+						</div>
+					</CardContent>
+				</Card>
+			</div>
 		</div>
-	</div>
-    );
+	);
 };
 
 export default function DashboardPage() {
 	const router = useRouter();
-    const { user, checkUser } = useAuthStore();
-    const [attempts, setAttempts] = useState<AttemptWithMockTest[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
+	//const { getCurrentUser } = useAuthStore();
+	const [attempts, setAttempts] = useState<AttemptWithMockTest[]>([]);
+	const [loading, setLoading] = useState(true);
+	const [error, setError] = useState<string | null>(null);
 
-    useEffect(() => {
-        const fetchAttempts = async() => {
-            try{
-                console.log("Starting to fetch attempts...");
-                console.log("Current user:", user);
-                
-                if(!user) {
-                    console.log("No user found, checking user...");
-                    await checkUser();
-                    console.log("After checkUser, user:", user);
-                }
-                
-                // Make sure user is defined and has an id before proceeding
-                if(user && user.id){
-                    console.log("User found with ID:", user.id);
-                    const studentId = user.id;
+	useEffect(() => {
+		const fetchAttempts = async () => {
+			try {
+				const user = await getCurrentUser();
+				console.log("Current user on dashboard:", user);
 
-                    // Fetch attempts only if studentId is defined
-                    if (studentId) {
-                        console.log("Fetching attempts for studentId:", studentId);
-                        const attemptsData = await getStudentAttemptsByUserId(studentId);
-                        console.log("Raw attempts data received:", attemptsData);
-                        console.log("Number of attempts found:", attemptsData?.length || 0);
 
-                        // Process attempts only if we got data back
-                        if (attemptsData && attemptsData.length > 0) {
-                            console.log("Processing attempts with mock test data...");
-                            const attemptsWithMockTest: AttemptWithMockTest[] = await Promise.all(
-                                attemptsData.map(async (attempt) => {
-                                    console.log("Processing attempt:", attempt);
-                                    console.log("Attempt mockTestId:", attempt.mockTestId);
-                                    const mockTest = await getMockTestById(attempt.mockTestId);
-                                    console.log("Mock test data:", mockTest);
-                                    return {
-                                        id: attempt.$id,
-                                        userId: attempt.userId,
-                                        mockTestId: attempt.mockTestId,
-                                        startedAt: attempt.startedAt,
-                                        completedAt: attempt.completedAt,
-                                        status: attempt.status,
-                                        totalScore: attempt.totalScore,
-                                        percentageScore: attempt.percentageScore,
-                                        mockTestName: mockTest.name,
-                                        mockTestCategory: mockTest.category
-                                    }
-                                })
-                            );
-                            console.log("Processed attempts with mock test data:", attemptsWithMockTest);
-                            setAttempts(attemptsWithMockTest);
-                        } else {
-                            // If no attempts found, set empty array
-                            console.log("No attempts found, setting empty array");
-                            setAttempts([]);
-                        }
-                    }
-                } else {
-                    // If no user, set empty array for attempts
-                    console.log("No user or user ID, setting empty array for attempts");
-                    setAttempts([]);
-                }
-            } catch (error: any) {
-                console.error("Error fetching attempts:", error);
-                console.error("Error stack:", error.stack);
-                setError(error.message);
-            } finally {
-                setLoading(false);
-                console.log("Finished fetching attempts, loading set to false");
-            }
-        }
-        console.log("Dashboard component mounted, calling fetchAttempts");
-        fetchAttempts();
-    }, [user, checkUser]);
+				if (user && user.userId) {
+					console.log("User found with ID:", user.userId);
+					const studentId = user.userId;
 
-    // Calculate stats for overview cards
-    const calculateStats = () => {
-        console.log("Calculating stats from attempts:", attempts);
-        
-        if (!attempts || attempts.length === 0) {
-            console.log("No attempts data, returning zero stats");
-            return {
-                totalTests: 0,
-                averageScore: 0,
-                completedTests: 0,
-                inProgressTests: 0
-            };
-        }
+					// Fetch attempts only if studentId is defined
+					if (studentId) {
+						console.log("Fetching attempts for studentId:", studentId);
+						const attemptsData = await getStudentAttemptsByUserId(studentId);
+						console.log("Raw attempts data received:", attemptsData);
+						console.log("Number of attempts found:", attemptsData?.length || 0);
 
-        const completedAttempts = attempts.filter(a => a.status === "completed");
-        console.log("Completed attempts:", completedAttempts);
-        
-        const totalScore = completedAttempts.reduce((sum, a) => sum + (a.totalScore || 0), 0);
-        console.log("Total score from completed attempts:", totalScore);
-        
-        const averageScore = completedAttempts.length > 0 ? (totalScore / completedAttempts.length).toFixed(1) : 0;
-        console.log("Calculated average score:", averageScore);
-        
-        const inProgressTests = attempts.filter(a => a.status === "in_progress").length;
-        console.log("In-progress tests:", inProgressTests);
-        
-        const result = {
-            totalTests: attempts.length,
-            averageScore,
-            completedTests: completedAttempts.length,
-            inProgressTests
-        };
-        
-        console.log("Final stats:", result);
-        return result;
-    };
+						// Process attempts only if we got data back
+						if (attemptsData && attemptsData.length > 0) {
+							console.log("Processing attempts with mock test data...");
+							const attemptsWithMockTest: AttemptWithMockTest[] =
+								await Promise.all(
+									attemptsData.map(async (attempt) => {
+										console.log("Processing attempt:", attempt);
+										console.log("Attempt mockTestId:", attempt.mockTestId);
+										const mockTest = await getMockTestById(attempt.mockTestId);
+										console.log("Mock test data:", mockTest);
+										return {
+											id: attempt.$id,
+											userId: attempt.userId,
+											mockTestId: attempt.mockTestId,
+											startedAt: attempt.startedAt,
+											completedAt: attempt.completedAt,
+											status: attempt.status,
+											totalScore: attempt.totalScore,
+											percentageScore: attempt.percentageScore,
+											mockTestName: mockTest.name,
+											mockTestCategory: mockTest.category,
+										};
+									}),
+								);
+							console.log(
+								"Processed attempts with mock test data:",
+								attemptsWithMockTest,
+							);
+							setAttempts(attemptsWithMockTest);
+						} else {
+							// If no attempts found, set empty array
+							console.log("No attempts found, setting empty array");
+							setAttempts([]);
+						}
+					}
+				} else {
+					// If no user, set empty array for attempts
+					console.log("No user or user ID, setting empty array for attempts");
+					setAttempts([]);
+				}
+			} catch (error: any) {
+				console.error("Error fetching attempts:", error);
+				console.error("Error stack:", error.stack);
+				setError(error.message);
+			} finally {
+				setLoading(false);
+				console.log("Finished fetching attempts, loading set to false");
+			}
+		};
+		console.log("Dashboard component mounted, calling fetchAttempts");
+		fetchAttempts();
+	}, []);
 
-    const stats = calculateStats();
+	// Calculate stats for overview cards
+	const calculateStats = () => {
+		console.log("Calculating stats from attempts:", attempts);
 
-    // Calculate skill scores for progress bars
-    const calculateSkillScores = () => {
-        if (!attempts || attempts.length === 0) {
-            return {
-                reading: { score: 0, percentage: 0 },
-                writing: { score: 0, percentage: 0 },
-                speaking: { score: 0, percentage: 0 },
-                listening: { score: 0, percentage: 0 }
-            };
-        }
+		if (!attempts || attempts.length === 0) {
+			console.log("No attempts data, returning zero stats");
+			return {
+				totalTests: 0,
+				averageScore: 0,
+				completedTests: 0,
+				inProgressTests: 0,
+			};
+		}
 
-        const { barChartData } = processAttemptsData(attempts);
-        
-        const getSkillData = (skillName: string) => {
-            const skill = barChartData.find(item => item.skill === skillName);
-            const score = skill ? skill.score : 0;
-            // Convert score to percentage (assuming max score is 10)
-            const percentage = score * 10;
-            return { score, percentage };
-        };
+		const completedAttempts = attempts.filter((a) => a.status === "completed");
+		console.log("Completed attempts:", completedAttempts);
 
-        return {
-            reading: getSkillData("Reading"),
-            writing: getSkillData("Writing"),
-            speaking: getSkillData("Speaking"),
-            listening: getSkillData("Listening")
-        };
-    };
+		const totalScore = completedAttempts.reduce(
+			(sum, a) => sum + (a.totalScore || 0),
+			0,
+		);
+		console.log("Total score from completed attempts:", totalScore);
 
-    const skillScores = calculateSkillScores();
+		const averageScore =
+			completedAttempts.length > 0
+				? (totalScore / completedAttempts.length).toFixed(1)
+				: 0;
+		console.log("Calculated average score:", averageScore);
 
-    if (loading) {
+		const inProgressTests = attempts.filter(
+			(a) => a.status === "in_progress",
+		).length;
+		console.log("In-progress tests:", inProgressTests);
+
+		const result = {
+			totalTests: attempts.length,
+			averageScore,
+			completedTests: completedAttempts.length,
+			inProgressTests,
+		};
+
+		console.log("Final stats:", result);
+		return result;
+	};
+
+	const stats = calculateStats();
+
+	// Calculate skill scores for progress bars
+	const calculateSkillScores = () => {
+		if (!attempts || attempts.length === 0) {
+			return {
+				reading: { score: 0, percentage: 0 },
+				writing: { score: 0, percentage: 0 },
+				speaking: { score: 0, percentage: 0 },
+				listening: { score: 0, percentage: 0 },
+			};
+		}
+
+		const { barChartData } = processAttemptsData(attempts);
+
+		const getSkillData = (skillName: string) => {
+			const skill = barChartData.find((item) => item.skill === skillName);
+			const score = skill ? skill.score : 0;
+			// Convert score to percentage (assuming max score is 10)
+			const percentage = score * 10;
+			return { score, percentage };
+		};
+
+		return {
+			reading: getSkillData("Reading"),
+			writing: getSkillData("Writing"),
+			speaking: getSkillData("Speaking"),
+			listening: getSkillData("Listening"),
+		};
+	};
+
+	const skillScores = calculateSkillScores();
+
+	if (loading) {
 		return (
 			<div className="flex items-center justify-center min-h-screen">
 				Loading...
 			</div>
 		);
 	}
-    
-    if (error) {
-        return <div>Error: {error}</div>;
-    }
+
+	if (error) {
+		return <div>Error: {error}</div>;
+	}
 
 	return (
 		<div className="h-full p-6 space-y-6">
@@ -478,9 +497,13 @@ export default function DashboardPage() {
 								<div>
 									<p className="text-sm text-gray-500">Tests In Progress</p>
 									<div className="flex items-end gap-2">
-										<h2 className="text-2xl font-bold">{stats.inProgressTests}</h2>
+										<h2 className="text-2xl font-bold">
+											{stats.inProgressTests}
+										</h2>
 										<span className="text-xs text-amber-500">
-											{stats.inProgressTests > 0 ? "Continue your tests" : "All tests completed"}
+											{stats.inProgressTests > 0
+												? "Continue your tests"
+												: "All tests completed"}
 										</span>
 									</div>
 								</div>
@@ -497,7 +520,9 @@ export default function DashboardPage() {
 									<div className="flex items-end gap-2">
 										<h2 className="text-2xl font-bold">{stats.averageScore}</h2>
 										<span className="text-xs text-green-500">
-											{Number(stats.averageScore) >= 7 ? "Excellent!" : "Keep improving!"}
+											{Number(stats.averageScore) >= 7
+												? "Excellent!"
+												: "Keep improving!"}
 										</span>
 									</div>
 								</div>
@@ -529,7 +554,9 @@ export default function DashboardPage() {
 								<div className="space-y-2">
 									<div className="flex justify-between">
 										<span className="text-sm font-medium">Reading</span>
-										<span className="text-sm text-gray-500">{skillScores.reading.score.toFixed(1)}</span>
+										<span className="text-sm text-gray-500">
+											{skillScores.reading.score.toFixed(1)}
+										</span>
 									</div>
 									<Progress
 										value={skillScores.reading.percentage}
@@ -539,7 +566,9 @@ export default function DashboardPage() {
 								<div className="space-y-2">
 									<div className="flex justify-between">
 										<span className="text-sm font-medium">Listening</span>
-										<span className="text-sm text-gray-500">{skillScores.listening.score.toFixed(1)}</span>
+										<span className="text-sm text-gray-500">
+											{skillScores.listening.score.toFixed(1)}
+										</span>
 									</div>
 									<Progress
 										value={skillScores.listening.percentage}
@@ -549,7 +578,9 @@ export default function DashboardPage() {
 								<div className="space-y-2">
 									<div className="flex justify-between">
 										<span className="text-sm font-medium">Writing</span>
-										<span className="text-sm text-gray-500">{skillScores.writing.score.toFixed(1)}</span>
+										<span className="text-sm text-gray-500">
+											{skillScores.writing.score.toFixed(1)}
+										</span>
 									</div>
 									<Progress
 										value={skillScores.writing.percentage}
@@ -559,7 +590,9 @@ export default function DashboardPage() {
 								<div className="space-y-2">
 									<div className="flex justify-between">
 										<span className="text-sm font-medium">Speaking</span>
-										<span className="text-sm text-gray-500">{skillScores.speaking.score.toFixed(1)}</span>
+										<span className="text-sm text-gray-500">
+											{skillScores.speaking.score.toFixed(1)}
+										</span>
 									</div>
 									<Progress
 										value={skillScores.speaking.percentage}
@@ -578,31 +611,38 @@ export default function DashboardPage() {
 							) : (
 								<div className="space-y-4">
 									{attempts.slice(-3).map((attempt) => (
-										<div key={attempt.id} className="flex items-center justify-between">
+										<div
+											key={attempt.id}
+											className="flex items-center justify-between"
+										>
 											<div>
-												<h4 className="font-medium">{attempt.mockTestName || "Mock Test"}</h4>
+												<h4 className="font-medium">
+													{attempt.mockTestName || "Mock Test"}
+												</h4>
 												<p className="text-sm text-gray-500">
-													{new Date(attempt.completedAt || attempt.startedAt).toLocaleDateString()}
+													{new Date(
+														attempt.completedAt || attempt.startedAt,
+													).toLocaleDateString()}
 												</p>
 											</div>
-											<Badge 
+											<Badge
 												className={
-													attempt.status === "completed" 
-														? "bg-green-100 text-green-800 hover:bg-green-100" 
+													attempt.status === "completed"
+														? "bg-green-100 text-green-800 hover:bg-green-100"
 														: "bg-amber-100 text-amber-800 hover:bg-amber-100"
 												}
 											>
-												{attempt.status === "completed" 
-													? `${attempt.percentageScore || 0}%` 
+												{attempt.status === "completed"
+													? `${attempt.percentageScore || 0}%`
 													: "In Progress"}
 											</Badge>
 										</div>
 									))}
 									{attempts.length > 3 && (
-										<Button 
-											variant="outline" 
+										<Button
+											variant="outline"
 											className="w-full mt-2"
-											onClick={() => router.push('/dashboard/mock-tests')}
+											onClick={() => router.push("/dashboard/mock-tests")}
 										>
 											View All Tests
 										</Button>
