@@ -5,7 +5,7 @@ import { createAdminClient, createSessionClient } from "@/lib/server/appwrite";
 import { cookies } from "next/headers";
 import { Query } from "node-appwrite";
 
-const sessionName = `a_session_${process.env.NEXT_PUBLIC_PROJECTID}`;
+const sessionName = "bravo-session"
 
 // Function to check if the current user's email is verified
 export async function isEmailVerified() {

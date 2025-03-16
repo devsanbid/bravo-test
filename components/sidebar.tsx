@@ -22,8 +22,9 @@ import { useState, useEffect } from "react";
 import { Button } from "./ui/button";
 import { useRouter } from "next/navigation";
 import { logout } from "@/controllers/AuthController";
-import { useAuthStore } from "@/lib/stores/authStore";
+import { useAuthStore } from "@/lib/stores/auth_store";
 import { toast } from "sonner";
+import { logout as AuthLogout } from "@/controllers/AuthController";
 
 const routes = [
   {
@@ -76,27 +77,24 @@ const routes = [
 export function Sidebar() {
   const pathname = usePathname();
   const [isCollapsed, setIsCollapsed] = useState(false);
-  const [userDetails, setUserDetails] = useState<any>(null);
+  const [userDetails, setUserDetails] = useState<{name: string, email: string } | null>(null);
   const router = useRouter();
 
-  const { user, logout, checkUser } = useAuthStore();
+  const { getCurrentUser, logout  } = useAuthStore();
 
   useEffect(() => {
-    checkUser();
-  }, [checkUser]);
-
-  useEffect(() => {
-    if (user && user.profile) {
-      setUserDetails({
-        email: user.email || "",
-        name: user.name || "",
-      });
+    async function run() {
+      const users = await getCurrentUser();
+      console.log("navbar users: ", users)
     }
-  }, [user]);
+
+    run()
+  }, []);
 
   const handleSignOut = async () => {
     try {
-      await logout();
+      logout();
+      await AuthLogout();
       router.push('/login');
       toast.success('Logged out successfully');
     } catch (error) {

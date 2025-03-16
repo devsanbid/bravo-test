@@ -20,6 +20,7 @@ export const useAuthStore = create<AuthStates>()(
 			logout: () => set({ token: null, isAuthenticated: false }),
 			getCurrentUser: async () => {
 				const data = await verifyJWT(get().token as string);
+        console.log("data of store: ", data)
 				if (data?.payload) {
 					return data?.payload;
 				}
