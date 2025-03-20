@@ -29,7 +29,6 @@ import {
 } from "@/components/ui/select";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { toast } from "sonner";
-import { useAuthStore } from "@/lib/stores/authStore";
 
 const formSchema = z
 	.object({

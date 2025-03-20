@@ -1,8 +1,6 @@
 "use server";
-import { Client, Account, Databases } from "node-appwrite";
+import { Client, Account, Databases, Storage } from "node-appwrite";
 import { cookies } from "next/headers";
-
-const sessionName = `a_session_${process.env.NEXT_PUBLIC_PROJECTID}`;
 
 export async function createSessionClient() {
 	const client = new Client()
@@ -24,6 +22,9 @@ export async function createSessionClient() {
 		get database() {
 			return new Databases(client);
 		},
+		get storage() {
+			return new Storage(client);
+		},
 	};
 }
 
@@ -39,6 +40,9 @@ export async function createAdminClient() {
 		},
 		get databases() {
 			return new Databases(client);
+		},
+		get storage() {
+			return new Storage(client);
 		},
 	};
 }

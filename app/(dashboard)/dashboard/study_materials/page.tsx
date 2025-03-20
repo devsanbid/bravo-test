@@ -15,7 +15,7 @@ import { Label } from "@/components/ui/label";
 
 const StudyMaterials = () => {
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 p-10">
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold tracking-tight">Study Materials</h1>
         <Button variant="outline" className="gap-2">

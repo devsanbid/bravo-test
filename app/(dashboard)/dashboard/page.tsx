@@ -36,7 +36,6 @@ import {
 } from "@/controllers/MockTestController";
 import { useEffect, useState } from "react";
 import type { StudentAttempt } from "@/lib/types/mock-test";
-import { getCurrentUser } from "@/controllers/AuthController";
 
 interface AttemptWithMockTest extends StudentAttempt {
 	mockTestName: string;
@@ -78,16 +77,17 @@ const processAttemptsData = (attempts: AttemptWithMockTest[]) => {
 	sortedAttempts.forEach((attempt) => {
 		const category = attempt.mockTestCategory;
 		if (category && attempt.totalScore !== undefined) {
-			if (category.includes("Reading")) {
+			if (category.includes("reading")) {
 				skillScores["Reading"].total += attempt.totalScore;
 				skillScores["Reading"].count += 1;
-			} else if (category.includes("Writing")) {
+        console.log("skillScores", skillScores)
+			} else if (category.includes("writing")) {
 				skillScores["Writing"].total += attempt.totalScore;
 				skillScores["Writing"].count += 1;
-			} else if (category.includes("Speaking")) {
+			} else if (category.includes("speaking")) {
 				skillScores["Speaking"].total += attempt.totalScore;
 				skillScores["Speaking"].count += 1;
-			} else if (category.includes("Listening")) {
+			} else if (category.includes("listening")) {
 				skillScores["Listening"].total += attempt.totalScore;
 				skillScores["Listening"].count += 1;
 			}
@@ -280,7 +280,7 @@ const Analytics = ({ attempts }: { attempts: AttemptWithMockTest[] }) => {
 
 export default function DashboardPage() {
 	const router = useRouter();
-	//const { getCurrentUser } = useAuthStore();
+	const { getCurrentUser } = useAuthStore();
 	const [attempts, setAttempts] = useState<AttemptWithMockTest[]>([]);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState<string | null>(null);

@@ -2,7 +2,6 @@
 
 import { useState, useEffect, use } from "react";
 import { useRouter } from "next/navigation";
-import { useAuthStore } from "@/lib/stores/authStore";
 import { getMockTestById, updateMockTest } from "@/controllers/MockTestController";
 import { MockTest } from "@/lib/types/mock-test";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -60,7 +59,6 @@ export default function EditMockTestPage({ params }: { params: Promise<{ id: str
   const [isLoading, setIsLoading] = useState(true);
   const [mockTest, setMockTest] = useState<MockTest | null>(null);
   const router = useRouter();
-  const { user } = useAuthStore();
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -120,10 +118,6 @@ export default function EditMockTestPage({ params }: { params: Promise<{ id: str
   }, [resolvedParams.id, form]);
 
   const onSubmit = async (values: FormValues) => {
-    if (!user) {
-      toast.error("You must be logged in to update a mock test");
-      return;
-    }
 
     try {
       setIsSubmitting(true);
@@ -142,21 +136,6 @@ export default function EditMockTestPage({ params }: { params: Promise<{ id: str
       setIsSubmitting(false);
     }
   };
-
-  if (!user || user.profile?.role !== "mod") {
-    return (
-      <div className="flex items-center justify-center h-screen">
-        <Card className="w-[450px]">
-          <CardHeader>
-            <CardTitle className="text-center text-red-500">Access Denied</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-center">You do not have permission to access this page.</p>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
 
   if (isLoading) {
     return (

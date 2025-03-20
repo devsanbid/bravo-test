@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { useAuthStore } from "@/lib/stores/authStore";
+import { useAuthStore } from "@/lib/stores/auth_store";
 import { getUpcomingMockTests } from "@/controllers/MockTestController";
 import { MockTest } from "@/lib/types/mock-test";
 import { Button } from "@/components/ui/button";
@@ -22,7 +22,7 @@ export default function UpcomingMockTests() {
   const [mockTests, setMockTests] = useState<MockTest[]>([]);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
-  const { user } = useAuthStore();
+  const { getCurrentUser } = useAuthStore();
 
   useEffect(() => {
     fetchUpcomingTests();

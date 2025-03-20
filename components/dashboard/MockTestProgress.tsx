@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useAuthStore } from "@/lib/stores/authStore";
+import { useAuthStore } from "@/lib/stores/auth_store";
 import { getStudentAttemptsByUserId } from "@/controllers/MockTestController";
 import { StudentAttempt } from "@/lib/types/mock-test";
 import {
@@ -20,24 +20,30 @@ import {
 import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
 import { FileText, Headphones, PenTool, Mic, TrendingUp } from "lucide-react";
+import { UserDataInterface } from "@/lib/type";
 
 export default function MockTestProgress() {
   const [attempts, setAttempts] = useState<StudentAttempt[]>([]);
   const [loading, setLoading] = useState(true);
-  const { user } = useAuthStore();
+  const { getCurrentUser } = useAuthStore();
+  const [user, setUser] = useState<null | UserDataInterface>(null);
 
   useEffect(() => {
-    if (user) {
-      fetchAttempts();
+    async function run() {
+      const user = await getCurrentUser();
+      if (user) {
+        setUser(user)
+        fetchAttempts();
+      }
     }
-  }, [user]);
+  }, [getCurrentUser]);
 
   const fetchAttempts = async () => {
     if (!user) return;
     
     try {
       setLoading(true);
-      const userAttempts = await getStudentAttemptsByUserId(user.$id);
+      const userAttempts = await getStudentAttemptsByUserId(user.userId);
       setAttempts(userAttempts as StudentAttempt[]);
     } catch (error) {
       console.error("Error fetching student attempts:", error);

@@ -47,7 +47,6 @@
     "@tiptap/react": "^2.11.5",
     "@tiptap/starter-kit": "^2.11.5",
     "@types/jsonwebtoken": "^9.0.9",
-    "appwrite": "^13.0.2",
     "autoprefixer": "^10.4.20",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.1",

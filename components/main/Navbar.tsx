@@ -15,7 +15,7 @@ import { Button } from "@/components/ui/button";
 import { BravoLogo } from "@/components/main/Logo";
 import HeadLine from "@/components/main/HeadLine";
 import { Menu, X, User as UserIcon } from "lucide-react";
-import UserChat from '@/components/chat/UserChat';
+//import UserChat from '../../../chat/UserChat';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -34,6 +34,12 @@ export default function Navbar() {
   const handleSignOut = async () => {
     router.push("/");
   };
+
+  useEffect(() => {
+    async function run() {
+
+    }
+  })
 
   return (
     <div className="w-full sticky top-0 z-50 bg-white">
@@ -302,8 +308,6 @@ export default function Navbar() {
 				</NavigationMenu>
 
             <div className="flex items-center gap-4">
-              <UserChat />
-              
               {user ? (
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>

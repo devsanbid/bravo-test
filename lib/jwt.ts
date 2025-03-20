@@ -2,7 +2,7 @@ import * as jose from "jose";
 import type { UserDataInterface } from "@/lib/type";
 
 const JWT_SECRET = new TextEncoder().encode(
-	process.env.JWT_SECRET || "your-secret-key",
+	process.env.NEXT_PUBLIC_JWT_SECRET || "your-secret-key",
 );
 
 export const createJWT = async (user: UserDataInterface) => {

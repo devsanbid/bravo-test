@@ -27,9 +27,10 @@ import {
 } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { useEffect, useState } from "react";
-import { useAuthStore } from "@/lib/stores/authStore";
+import { useAuthStore } from "@/lib/stores/auth_store";
 import { getStudentAttemptsByUserId, getMockTestById } from "@/controllers/MockTestController";
-import { StudentAttempt } from "@/lib/types/mock-test";
+import type { StudentAttempt } from "@/lib/types/mock-test";
+import type { UserDataInterface } from "@/lib/type";
 
 interface AttemptWithMockTest extends StudentAttempt {
   mockTestName: string;
@@ -39,7 +40,8 @@ interface AttemptWithMockTest extends StudentAttempt {
 const COLORS = ["#4ade80", "#f97316", "#6b7280"];
 
 export default function ProgressPage() {
-  const { user, checkUser } = useAuthStore();
+  const [user, setUser] = useState<UserDataInterface | null>(null)
+  const {getCurrentUser} = useAuthStore();
   const [attempts, setAttempts] = useState<AttemptWithMockTest[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -62,13 +64,14 @@ export default function ProgressPage() {
   useEffect(() => {
     const fetchAttempts = async () => {
       try {
-        if (!user) {
-          await checkUser();
+          const user = await getCurrentUser()
+        if(user) {
+          setUser(user)
         }
         
         // Make sure user is defined and has an id before proceeding
-        if (user && user.id) {
-          const studentId = user.id;
+        if (user && user.userId) {
+          const studentId = user.userId;
 
           // Fetch attempts only if studentId is defined
           if (studentId) {
@@ -142,7 +145,7 @@ export default function ProgressPage() {
       }
     };
     fetchAttempts();
-  }, [user, checkUser]);
+  }, []);
 
   const processAttemptData = (attempts: AttemptWithMockTest[]) => {
     if (!attempts || attempts.length === 0) return;
@@ -151,6 +154,8 @@ export default function ProgressPage() {
     const sortedAttempts = [...attempts].sort((a, b) => {
       return new Date(a.completedAt || a.startedAt).getTime() - new Date(b.completedAt || b.startedAt).getTime();
     });
+
+    console.log("sortedAttempts: ", sortedAttempts)
 
     // Process mock test scores for line chart
     const mockScores = processTestScores(sortedAttempts);
@@ -197,13 +202,13 @@ export default function ProgressPage() {
         }
 
         const category = attempt.mockTestCategory || "";
-        if (category.includes("Reading")) {
+        if (category.includes("reading")) {
           monthlyScores[month].reading.push(attempt.totalScore);
-        } else if (category.includes("Listening")) {
+        } else if (category.includes("listening")) {
           monthlyScores[month].listening.push(attempt.totalScore);
-        } else if (category.includes("Writing")) {
+        } else if (category.includes("writing")) {
           monthlyScores[month].writing.push(attempt.totalScore);
-        } else if (category.includes("Speaking")) {
+        } else if (category.includes("speaking")) {
           monthlyScores[month].speaking.push(attempt.totalScore);
         }
       }
@@ -291,16 +296,16 @@ export default function ProgressPage() {
       if (attempt.status === "completed" && attempt.totalScore !== undefined) {
         const category = attempt.mockTestCategory;
         if (category) {
-          if (category.includes("Reading")) {
+          if (category.includes("reading")) {
             skillScores["Reading"].total += attempt.totalScore;
             skillScores["Reading"].count += 1;
-          } else if (category.includes("Listening")) {
+          } else if (category.includes("listening")) {
             skillScores["Listening"].total += attempt.totalScore;
             skillScores["Listening"].count += 1;
-          } else if (category.includes("Writing")) {
+          } else if (category.includes("writing")) {
             skillScores["Writing"].total += attempt.totalScore;
             skillScores["Writing"].count += 1;
-          } else if (category.includes("Speaking")) {
+          } else if (category.includes("speaking")) {
             skillScores["Speaking"].total += attempt.totalScore;
             skillScores["Speaking"].count += 1;
           }

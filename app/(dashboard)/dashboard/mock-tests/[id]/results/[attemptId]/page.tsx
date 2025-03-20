@@ -4,7 +4,6 @@ import { useEffect, useState, use } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
-import { useAuthStore } from "@/lib/stores/authStore";
 import {
   getStudentAttemptById,
   getQuestionsByMockTestId,
@@ -56,7 +55,6 @@ export default function ResultsPage(
   const [unansweredQuestions, setUnansweredQuestions] = useState(0);
   const [categoryScores, setCategoryScores] = useState<any[]>([]);
   const router = useRouter();
-  const { user, checkUser } = useAuthStore();
 
   // Colors for charts
   const COLORS = ['#4ade80', '#f87171', '#a3a3a3'];
@@ -66,7 +64,6 @@ export default function ResultsPage(
     const loadResults = async () => {
       try {
         setLoading(true);
-        checkUser();
         
         // Fetch data
         const attemptData = await getStudentAttemptById(params.attemptId);

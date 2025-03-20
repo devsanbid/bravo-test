@@ -2,13 +2,13 @@
 
 import { useState, useEffect, use } from "react";
 import { useRouter } from "next/navigation";
-import { useAuthStore } from "@/lib/stores/authStore";
+import { useAuthStore } from "@/lib/stores/auth_store";
 import {
 	getMockTestById,
 	getQuestionsByMockTestId,
 	createStudentAttempt,
 } from "@/controllers/MockTestController";
-import { MockTest, Question } from "@/lib/types/mock-test";
+import type { MockTest, Question } from "@/lib/types/mock-test";
 import { Button } from "@/components/ui/button";
 import {
 	Card,
@@ -40,27 +40,34 @@ import {
 	AlertTriangle,
 	CheckCircle,
 } from "lucide-react";
+import type { UserDataInterface } from "@/lib/type";
 
-export default function MockTestDetailsPage(props: { params: Promise<{ id: string }> }) {
-    const params = use(props.params);
-    const [mockTest, setMockTest] = useState<MockTest | null>(null);
-    const [questions, setQuestions] = useState<Question[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [startDialogOpen, setStartDialogOpen] = useState(false);
-    const router = useRouter();
-    const { user,checkUser } = useAuthStore();
+export default function MockTestDetailsPage(props: {
+	params: Promise<{ id: string }>;
+}) {
+	const params = use(props.params);
+	const [mockTest, setMockTest] = useState<MockTest | null>(null);
+	const [questions, setQuestions] = useState<Question[]>([]);
+	const [loading, setLoading] = useState(true);
+	const [startDialogOpen, setStartDialogOpen] = useState(false);
+	const router = useRouter();
+	const [user, setUser] = useState<UserDataInterface | null>(null);
+	const { getCurrentUser } = useAuthStore();
 
-    useEffect(() => {
+	useEffect(() => {
 		if (params.id) {
 			fetchMockTest();
 			fetchQuestions();
 		}
 	}, [params.id]);
 
-    const fetchMockTest = async () => {
+	const fetchMockTest = async () => {
 		try {
 			const test = await getMockTestById(params.id);
-            await checkUser()
+			const user = await getCurrentUser();
+			if (user) {
+				setUser(user);
+			}
 			setMockTest(test as MockTest);
 		} catch (error) {
 			console.error("Error fetching mock test:", error);
@@ -68,11 +75,11 @@ export default function MockTestDetailsPage(props: { params: Promise<{ id: strin
 		}
 	};
 
-    const fetchQuestions = async () => {
+	const fetchQuestions = async () => {
 		try {
 			setLoading(true);
 			const fetchedQuestions = await getQuestionsByMockTestId(params.id);
-            console.log("fetched...")
+			console.log("fetched...");
 			setQuestions(fetchedQuestions as Question[]);
 		} catch (error) {
 			console.error("Error fetching questions:", error);
@@ -82,7 +89,7 @@ export default function MockTestDetailsPage(props: { params: Promise<{ id: strin
 		}
 	};
 
-    const handleStartTest = async () => {
+	const handleStartTest = async () => {
 		if (!user) {
 			toast.error("You must be logged in to take this test");
 			return;
@@ -96,11 +103,11 @@ export default function MockTestDetailsPage(props: { params: Promise<{ id: strin
 		try {
 			// Create a new attempt
 			const attempt = await createStudentAttempt({
-				userId: user.$id,
+				userId: user.userId,
 				mockTestId: params.id,
 			});
 
-            console.log("attempt: ", attempt)
+			console.log("attempt: ", attempt);
 
 			// Redirect to the test taking page
 			router.push(`/dashboard/mock-tests/${params.id}/take/${attempt.id}`);
@@ -110,7 +117,7 @@ export default function MockTestDetailsPage(props: { params: Promise<{ id: strin
 		}
 	};
 
-    const getCategoryIcon = (category: string) => {
+	const getCategoryIcon = (category: string) => {
 		switch (category) {
 			case "reading":
 				return <FileText className="h-5 w-5 mr-2" />;
@@ -125,13 +132,13 @@ export default function MockTestDetailsPage(props: { params: Promise<{ id: strin
 		}
 	};
 
-    const formatDate = (dateString?: string) => {
+	const formatDate = (dateString?: string) => {
 		if (!dateString) return "Available now";
 		const date = new Date(dateString);
 		return date.toLocaleString();
 	};
 
-    const isTestAvailable = () => {
+	const isTestAvailable = () => {
 		if (!mockTest) return false;
 
 		// If the test has a scheduled date, check if it's in the past
@@ -145,11 +152,11 @@ export default function MockTestDetailsPage(props: { params: Promise<{ id: strin
 		return mockTest.isActive;
 	};
 
-    const getQuestionTypeCount = (type: string) => {
+	const getQuestionTypeCount = (type: string) => {
 		return questions.filter((q) => q.questionType === type).length;
 	};
 
-    if (!user) {
+	if (!user) {
 		return (
 			<div className="flex items-center justify-center h-screen">
 				<Card className="w-[450px]">
@@ -168,7 +175,7 @@ export default function MockTestDetailsPage(props: { params: Promise<{ id: strin
 		);
 	}
 
-    if (loading || !mockTest) {
+	if (loading || !mockTest) {
 		return (
 			<div className="container mx-auto py-6">
 				<div className="flex justify-center items-center h-40">
@@ -178,7 +185,7 @@ export default function MockTestDetailsPage(props: { params: Promise<{ id: strin
 		);
 	}
 
-    return (
+	return (
 		<div className="container mx-auto py-6">
 			<div className="flex items-center mb-6">
 				<Button

@@ -29,7 +29,7 @@ import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { useAuthStore } from "@/lib/stores/authStore";
+import { useAuthStore } from "@/lib/stores/auth_store";
 import { useToast } from "@/hooks/use-toast";
 import {
   getUserSettings,
@@ -39,6 +39,7 @@ import {
   updateModAutoReply,
   toggleChatNotifications
 }from "@/controllers/SettingsController";
+import { UserDataInterface } from "@/lib/type";
 
 const profileFormSchema = z.object({
   firstName: z.string().min(2, "First name must be at least 2 characters"),
@@ -62,8 +63,9 @@ const responseTemplateSchema = z.object({
 
 export default function ModSettingsPage() {
   const { toast } = useToast();
-  const { user, checkUser } = useAuthStore();
-  const userId = user?.$id;
+  const {getCurrentUser} = useAuthStore();
+  const [user,setUser] = useState<UserDataInterface | null>(null)
+  const userId = user?.userId;
 
   // Settings state
   const [emailNotifications, setEmailNotifications] = useState(true);
@@ -106,8 +108,12 @@ export default function ModSettingsPage() {
         console.log("user",user)
   // First ensure we have user data
   useEffect(() => {
-    checkUser();
-  }, [checkUser]);
+    async function run() {
+      const user = await getCurrentUser()
+      setUser(user)
+    }
+    run()
+  }, []);
 
   // Load user settings after we have user data
   useEffect(() => {

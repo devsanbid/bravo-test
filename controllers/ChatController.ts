@@ -1,6 +1,6 @@
-import { ID, Models, Query } from "appwrite";
+"use server"
 import { createAdminClient } from "@/lib/server/appwrite";
-import { client_databases, client } from "@/lib/appwrite/client-config";
+import {ID, Query} from "node-appwrite"
 
 const DATABASE_ID = process.env.NEXT_PUBLIC_DATABASEID || "";
 const USERS_COLLECTION_ID = process.env.NEXT_PUBLIC_COLLECTID || "";
@@ -14,7 +14,7 @@ interface MessageData {
   timestamp: string;
 }
 
-export async function createGuestUser(DATABASE_ID: string, USERS_COLLECTION_ID: string) {
+export async function createGuestUser() {
   try {
     console.log("Creating guest user with DATABASE_ID:", DATABASE_ID, "USERS_COLLECTION_ID:", USERS_COLLECTION_ID);
     
@@ -363,17 +363,12 @@ export function subscribeToMessages(callback: (message: any) => void) {
   try {
     console.log("Setting up message subscription for database:", DATABASE_ID, "collection:", MESSAGE_COLLECTION_ID);
     
-    // Ensure client is properly initialized
-    if (!client) {
-      console.error("Appwrite client not initialized");
-      throw new Error("Appwrite client not initialized");
-    }
-    
     const subscriptionChannel = `databases.${DATABASE_ID}.collections.${MESSAGE_COLLECTION_ID}.documents`;
     console.log("Subscribing to channel:", subscriptionChannel);
     
     // Add more specific error handling
     try {
+      const {}
       const unsubscribe = client.subscribe([subscriptionChannel], (response: any) => {
         // Check if this is a document creation event
         if (response.events && response.events.includes(`databases.${DATABASE_ID}.collections.${MESSAGE_COLLECTION_ID}.documents.create`)) {

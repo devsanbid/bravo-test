@@ -1,11 +1,11 @@
 "use server";
-import { ID } from "@/lib/appwrite/config"; // Adjust path if needed
+import { ID } from "node-appwrite"; 
 import { createJWT, verifyJWT } from "@/lib/jwt";
 import { createAdminClient, createSessionClient } from "@/lib/server/appwrite";
 import { cookies } from "next/headers";
 import { Query } from "node-appwrite";
 
-const sessionName = "bravo-session"
+const sessionName = "bravo-session";
 
 // Function to check if the current user's email is verified
 export async function isEmailVerified() {
@@ -137,9 +137,7 @@ export async function getCurrentUser() {
 
 export async function logout() {
 	try {
-		const { account } = await createSessionClient();
 		(await cookies()).delete(sessionName);
-		await account.deleteSession("current");
 	} catch (error) {
 		console.error("Logout error:", error);
 		throw error;

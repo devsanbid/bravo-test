@@ -1,5 +1,5 @@
 "use server"
-import { ID } from "@/lib/appwrite/config";
+import { ID } from "node-appwrite";
 import { createAdminClient, createSessionClient } from "@/lib/server/appwrite";
 import { Query } from "node-appwrite";
 import {
@@ -87,15 +87,14 @@ export async function deleteMockTest(id: string) {
 // Get all mock tests
 export async function getAllMockTests() {
 	try {
-		const { databases } = await createSessionClient();
+		const { database } = await createSessionClient();
 		console.log("Database ID:", process.env.NEXT_PUBLIC_DATABASEID);
 		console.log("MockTest ID:", process.env.MOCKTEST_ID);
 
-		const mockTests = await databases.listDocuments(
+		const mockTests = await database.listDocuments(
 			process.env.NEXT_PUBLIC_DATABASEID || "",
 			process.env.MOCKTEST_ID || "",
-			[Query.limit(20)],
-             
+			[Query.limit(30)],
 		);
 		console.log("server mockTest =", mockTests);
 
@@ -272,10 +271,10 @@ export async function deleteQuestion(id: string) {
 // Get all questions for a mock test
 export async function getQuestionsByMockTestId(mockTestId: string) {
 	try {
-		const { databases } = await createSessionClient();
+		const { database } = await createSessionClient();
 		console.log("mockTestId = ", mockTestId);
 
-		const questions = await databases.listDocuments(
+		const questions = await database.listDocuments(
 			process.env.NEXT_PUBLIC_DATABASEID || "",
 			process.env.QUESTIONS_ID || "",
 			[Query.equal("mockTestId", mockTestId), Query.limit(100)],

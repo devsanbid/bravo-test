@@ -2,7 +2,6 @@
 
 import { useState, useEffect, use } from "react";
 import { useRouter } from "next/navigation";
-import { useAuthStore } from "@/lib/stores/authStore";
 import {
 	getQuestionsByMockTestId,
 	updateQuestion,
@@ -75,7 +74,6 @@ export default function EditQuestionPage(props: { params: Promise<{ id: string; 
     const [questionData, setQuestionData] = useState<Question | null>(null);
     const [loading, setLoading] = useState(true);
     const router = useRouter();
-    const { user, checkUser } = useAuthStore();
 
     const form = useForm<FormValues>({
 		resolver: zodResolver(formSchema),
@@ -99,7 +97,6 @@ export default function EditQuestionPage(props: { params: Promise<{ id: string; 
 		const fetchQuestion = async () => {
 			try {
 				setLoading(true);
-				await checkUser();
 				const questions = await getQuestionsByMockTestId(params.id);
 				const question = questions.find(
 					(q) => q.$id === params.questionId || q.id === params.questionId,
@@ -179,10 +176,6 @@ export default function EditQuestionPage(props: { params: Promise<{ id: string; 
 
     const onSubmit = async (values: FormValues) => {
 		console.log("submiting.........");
-		if (!user) {
-			toast.error("You must be logged in to edit a question");
-			return;
-		}
 
 		try {
 			setIsSubmitting(true);
@@ -205,25 +198,6 @@ export default function EditQuestionPage(props: { params: Promise<{ id: string; 
 			setIsSubmitting(false);
 		}
 	};
-
-    if (!user || user.profile?.role !== "mod") {
-		return (
-			<div className="flex items-center justify-center h-screen">
-				<Card className="w-[450px]">
-					<CardHeader>
-						<CardTitle className="text-center text-red-500">
-							Access Denied
-						</CardTitle>
-					</CardHeader>
-					<CardContent>
-						<p className="text-center">
-							You do not have permission to access this page.
-						</p>
-					</CardContent>
-				</Card>
-			</div>
-		);
-	}
 
     if (loading) {
 		return (

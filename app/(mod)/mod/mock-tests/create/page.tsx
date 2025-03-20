@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { useAuthStore } from "@/lib/stores/authStore";
+import { useAuthStore } from "@/lib/stores/auth_store";
 import { createMockTest } from "@/controllers/MockTestController";
 import { MockTest } from "@/lib/types/mock-test";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -38,6 +38,7 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { ArrowLeft, Save } from "lucide-react";
+import { UserDataInterface } from "@/lib/type";
 
 const formSchema = z.object({
   title: z.string().min(3, "Title must be at least 3 characters"),
@@ -57,7 +58,17 @@ type FormValues = z.infer<typeof formSchema>;
 export default function CreateMockTestPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const router = useRouter();
-  const { user } = useAuthStore();
+  const [user, setUser] = useState<UserDataInterface | null>(null)
+  const { getCurrentUser } = useAuthStore();
+
+  useEffect(() => {
+    async function run() {
+      const user = await getCurrentUser();
+      if(user){
+        setUser(user)
+      }
+    }
+  })
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -82,7 +93,7 @@ export default function CreateMockTestPage() {
       
       const mockTestData: Omit<MockTest, "id" | "createdAt" | "updatedAt"> = {
         ...values,
-        createdBy: user.$id,
+        createdBy: user.userId,
       };
 
       console.log(mockTestData)
@@ -98,7 +109,7 @@ export default function CreateMockTestPage() {
     }
   };
 
-  if (!user || user.profile?.role !== "mod") {
+  if (!user || user?.role !== "mod") {
     return (
       <div className="flex items-center justify-center h-screen">
         <Card className="w-[450px]">

@@ -2,9 +2,9 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { useAuthStore } from "@/lib/stores/authStore";
+import { useAuthStore } from "@/lib/stores/auth_store";
 import { getAllMockTests } from "@/controllers/MockTestController";
-import { MockTest } from "@/lib/types/mock-test";
+import type { MockTest } from "@/lib/types/mock-test";
 import { Button } from "@/components/ui/button";
 import {
 	Card,
@@ -17,7 +17,6 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { toast } from "sonner";
 import {
 	FileText,
 	Headphones,
@@ -27,14 +26,16 @@ import {
 	Calendar,
 	Clock,
 } from "lucide-react";
+import type { UserDataInterface } from "@/lib/type";
 
 export default function MockTestsPage() {
 	const [mockTests, setMockTests] = useState<MockTest[]>([]);
+  const [user, setUser] = useState<UserDataInterface | null>(null);
 	const [loading, setLoading] = useState(true);
 	const [searchQuery, setSearchQuery] = useState("");
 	const [activeTab, setActiveTab] = useState("all");
 	const router = useRouter();
-	const { user, checkUser } = useAuthStore();
+	const { getCurrentUser } = useAuthStore();
 
 	useEffect(() => {
 		fetchMockTests();
@@ -43,15 +44,15 @@ export default function MockTestsPage() {
 	const fetchMockTests = async () => {
 		try {
 			setLoading(true);
+      const user = await getCurrentUser();
+      if(user){
+        setUser(user)
+      }
 			const tests = await getAllMockTests();
-			await checkUser();
 			console.log("test all = ", tests);
-			// Filter only active tests for students
 			const activeTests = (tests as MockTest[]).filter((test) => test.isActive);
 			setMockTests(activeTests);
 		} catch (error) {
-			console.error("Error fetching mock tests:", error);
-			toast.error("Failed to load mock tests");
 		} finally {
 			setLoading(false);
 		}

@@ -12,7 +12,7 @@ import {
   sendMessage, 
   subscribeToMessages,
   getAllModerators
-} from "@/controllers/chatController";
+} from "../../../../../_chatController";
 import { useAuthStore } from "@/lib/stores/authStore";
 import { useToast } from "@/hooks/use-toast";
 import {

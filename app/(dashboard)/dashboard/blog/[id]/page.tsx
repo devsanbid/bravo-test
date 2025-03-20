@@ -20,7 +20,7 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
 
   return (
     <div className="container px-4 py-8">
-      <Link href="/blog">
+      <Link href="/dashboard/blog">
         <Button variant="ghost" className="mb-6 ml-10 gap-2">
           <ArrowLeft className="h-4 w-4" /> Back to Blog
         </Button>

@@ -1,18 +1,20 @@
 "use client";
 
-import { logout } from "@/controllers/AuthController";
-import { useAuthStore } from "@/lib/stores/authStore";
+import { logout as Logout } from "@/controllers/AuthController";
+import { useAuthStore } from "@/lib/stores/auth_store";
 import { useRouter } from "next/navigation";
+import { useState } from "react";
 
 export function LogoutButton() {
 	const router = useRouter();
-	const { setUser, setLoading } = useAuthStore();
+	const { logout } = useAuthStore();
+	const [loading, setLoading] = useState<boolean>(false);
 
 	async function handleLogout() {
 		setLoading(true);
 		try {
-			await logout();
-			setUser(null);
+			logout();
+			await Logout();
 			router.push("/login");
 		} catch (error) {
 			console.error("Logout error:", error);
@@ -20,5 +22,12 @@ export function LogoutButton() {
 			setLoading(false);
 		}
 	}
-	return <button className="bg-red-300 text-white p-5 px-10 border" onClick={handleLogout}>Logout</button>;
+	return (
+		<button
+			className="bg-red-300 text-white p-5 px-10 border"
+			onClick={handleLogout}
+		>
+			Logout
+		</button>
+	);
 }

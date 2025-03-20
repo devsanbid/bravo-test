@@ -2,7 +2,6 @@
 
 import { useState, useEffect, use } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useAuthStore } from "@/lib/stores/authStore";
 import {
 	getMockTestById,
 	createQuestion,
@@ -47,7 +46,7 @@ import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { ArrowLeft, Save, Plus, Trash2, Upload } from "lucide-react";
-import { ID } from "@/lib/appwrite/config";
+import { ID } from "node-appwrite";
 
 // Define the form schema based on question type
 const baseQuestionSchema = z.object({
@@ -109,18 +108,19 @@ type FormValues =
 	| (z.infer<typeof speakingSchema> & { questionType: "speaking" })
 	| (z.infer<typeof shortAnswerSchema> & { questionType: "short_answer" });
 
-export default function CreateQuestionPage(props: { params: Promise<{ id: string }> }) {
-    const params = use(props.params);
-    const [mockTest, setMockTest] = useState<MockTest | null>(null);
-    const [isSubmitting, setIsSubmitting] = useState(false);
-    const [questionType, setQuestionType] =
+export default function CreateQuestionPage(props: {
+	params: Promise<{ id: string }>;
+}) {
+	const params = use(props.params);
+	const [mockTest, setMockTest] = useState<MockTest | null>(null);
+	const [isSubmitting, setIsSubmitting] = useState(false);
+	const [questionType, setQuestionType] =
 		useState<QuestionType>("multiple_choice");
-    const router = useRouter();
-    const searchParams = useSearchParams();
-    const { user, checkUser } = useAuthStore();
+	const router = useRouter();
+	const searchParams = useSearchParams();
 
-    // Get the question type from the URL query parameter
-    useEffect(() => {
+	// Get the question type from the URL query parameter
+	useEffect(() => {
 		const typeParam = searchParams.get("type") as QuestionType | null;
 		if (
 			typeParam &&
@@ -136,15 +136,14 @@ export default function CreateQuestionPage(props: { params: Promise<{ id: string
 		}
 	}, [searchParams]);
 
-    // Fetch the mock test
-    useEffect(() => {
+	// Fetch the mock test
+	useEffect(() => {
 		if (params.id) {
 			fetchMockTest();
 		}
 	}, [params.id]);
 
-    const fetchMockTest = async () => {
-		await checkUser();
+	const fetchMockTest = async () => {
 		try {
 			const test = await getMockTestById(params.id);
 			setMockTest(test as MockTest);
@@ -154,8 +153,8 @@ export default function CreateQuestionPage(props: { params: Promise<{ id: string
 		}
 	};
 
-    // Create the form with the appropriate schema based on question type
-    const form = useForm<FormValues>({
+	// Create the form with the appropriate schema based on question type
+	const form = useForm<FormValues>({
 		resolver: zodResolver(
 			questionType === "multiple_choice"
 				? multipleChoiceSchema
@@ -191,14 +190,14 @@ export default function CreateQuestionPage(props: { params: Promise<{ id: string
 		} as any,
 	});
 
-    // Use field array for multiple choice options
-    const { fields, append, remove } = useFieldArray({
+	// Use field array for multiple choice options
+	const { fields, append, remove } = useFieldArray({
 		control: form.control,
 		name: "options" as any,
 	});
 
-    // Update form when question type changes
-    useEffect(() => {
+	// Update form when question type changes
+	useEffect(() => {
 		form.reset({
 			questionText: form.getValues("questionText"),
 			questionType,
@@ -221,12 +220,7 @@ export default function CreateQuestionPage(props: { params: Promise<{ id: string
 		} as any);
 	}, [questionType]);
 
-    const onSubmit = async (values: FormValues) => {
-		if (!user) {
-			toast.error("You must be logged in to create a question");
-			return;
-		}
-
+	const onSubmit = async (values: FormValues) => {
 		if (!mockTest) {
 			toast.error("Mock test not found");
 			return;
@@ -290,30 +284,11 @@ export default function CreateQuestionPage(props: { params: Promise<{ id: string
 		}
 	};
 
-    const handleAddOption = () => {
+	const handleAddOption = () => {
 		append({ id: ID.unique(), text: "", isCorrect: false });
 	};
 
-    if (!user || user.profile?.role !== "mod") {
-		return (
-			<div className="flex items-center justify-center h-screen">
-				<Card className="w-[450px]">
-					<CardHeader>
-						<CardTitle className="text-center text-red-500">
-							Access Denied
-						</CardTitle>
-					</CardHeader>
-					<CardContent>
-						<p className="text-center">
-							You do not have permission to access this page.
-						</p>
-					</CardContent>
-				</Card>
-			</div>
-		);
-	}
-
-    if (!mockTest) {
+	if (!mockTest) {
 		return (
 			<div className="container mx-auto py-6">
 				<div className="flex justify-center items-center h-40">
@@ -323,7 +298,7 @@ export default function CreateQuestionPage(props: { params: Promise<{ id: string
 		);
 	}
 
-    return (
+	return (
 		<div className="container mx-auto py-6">
 			<div className="flex items-center mb-6">
 				<Button variant="ghost" onClick={() => router.back()} className="mr-4">

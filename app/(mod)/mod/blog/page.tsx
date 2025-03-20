@@ -16,7 +16,7 @@ export default async function ModBlogPage() {
     const blogPosts = await getBlogPosts();
 
     return (
-        <div>
+        <div className="p-10">
             <h1 className="text-3xl font-bold mb-4">Manage Blog Posts</h1>
             <div className="mb-4">
                 <Link href="/mod/blog/create">

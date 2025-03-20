@@ -4,7 +4,6 @@ import { useEffect, useState, use } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
-import { useAuthStore } from "@/lib/stores/authStore";
 import RichTextEditor from "./RichTextEditor";
 import {
 	getStudentAttemptById,
@@ -49,14 +48,12 @@ export default function TakeExamPage(
     const [examStartTime, setExamStartTime] = useState<Date | null>(null);
     const [answeredQuestions, setAnsweredQuestions] = useState<Set<string>>(new Set());
     const router = useRouter();
-    const { user, checkUser } = useAuthStore();
 
     // Load exam data and initialize timer
     useEffect(() => {
       const loadExam = async () => {
         try {
           setLoading(true);
-          checkUser();
           const attempt = await getStudentAttemptById(params.attemptId);
           const examQuestions = await getQuestionsByMockTestId(params.id);
           const mockTest = await getMockTestById(params.id);

@@ -33,14 +33,14 @@ interface SettingsData {
 export async function getUserSettings(userId: string) {
   try {
     console.log("Getting settings for user:", userId);
-    const { databases } = await createSessionClient();
+    const { database } = await createSessionClient();
     
     // Get database and collection IDs
     const databaseId = process.env.NEXT_PUBLIC_DATABASEID || "";
     const usersCollectionId = process.env.NEXT_PUBLIC_COLLECTID || "";
     
     // First, get the user document to check if settings exist
-    const users = await databases.listDocuments(databaseId, usersCollectionId, []);
+    const users = await database.listDocuments(databaseId, usersCollectionId, []);
     const userDoc = users.documents.find(doc => doc.userId === userId);
     
     if (!userDoc) {
@@ -70,7 +70,7 @@ export async function getUserSettings(userId: string) {
     };
     
     // Update user document with default settings
-    await databases.updateDocument(
+    await database.updateDocument(
       databaseId,
       usersCollectionId,
       userDoc.$id,

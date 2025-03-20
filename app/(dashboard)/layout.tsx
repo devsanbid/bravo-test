@@ -3,7 +3,7 @@ import type { Metadata } from 'next';
 import { Livvic } from 'next/font/google';
 import { Sidebar } from '@/components/sidebar';
 import { MobileNav } from '@/components/mobile-nav';
-import ChatWidget from '@/components/chat/ChatWidget';
+//import ChatWidget from '../../../chat/_ChatWidget';
 import EmailVerificationBanner from '@/components/EmailVerificationBanner';
 
 const livvic = Livvic({ 
@@ -40,7 +40,7 @@ export default function DashboardLayout({
         </div>
         {children}
       </main>
-      <ChatWidget />
+     {/* <ChatWidget /> */}
     </div>
   );
 }

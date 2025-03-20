@@ -19,8 +19,9 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
 import { logout } from "@/controllers/AuthController";
-import { useAuthStore } from "@/lib/stores/authStore";
+import { useAuthStore } from "@/lib/stores/auth_store";
 import { toast } from "sonner";
+import { UserDataInterface } from "@/lib/type";
 
 const routes = [
   {
@@ -70,18 +71,24 @@ export function ModSidebar() {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [userDetails, setUserDetails] = useState<any>(null);
   const router = useRouter();
+  const [user,setUser] = useState<UserDataInterface | null>(null)
+  const [loading, setLoading] = useState<boolean>(false)
 
-  const { user, setUser, setLoading,checkUser } = useAuthStore();
+  const {getCurrentUser} = useAuthStore();
 
   useEffect(() => {
-    checkUser();
-  }, []);
+    async function  run() {
+      const user = await getCurrentUser();
+      setUser(user);
+    }
+    run()
+  }, [getCurrentUser]);
   
   useEffect(() => {
-    if (user && user.profile) {
+    if (user) {
       setUserDetails({
         email: user.email || "",
-        name: user.name || "",
+        name: user.firstName || "",
       });
     }
   }, [user]);

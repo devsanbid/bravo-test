@@ -34,7 +34,7 @@ const BlogList: React.FC<BlogListProps> = async ({ limit = 25, offset = 0 }) => 
           <CardContent>
             <div className="flex justify-between items-center">
               <span className="text-sm text-gray-500">{new Date(post.createdAt).toLocaleDateString()}</span>
-              <Link href={`/blog/${post.id}`}>
+              <Link href={`/dashboard/blog/${post.id}`}>
                 <Button variant="ghost" size="sm" className="text-brand-purple hover:text-brand-purple/90">
                   Read more <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
