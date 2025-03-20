@@ -2,6 +2,7 @@ import "./globals.css";
 import { Toaster } from "@/components/ui/sonner";
 import { AuthProvider } from "@/contexts/AuthContext";
 import type { Metadata } from "next";
+import ClientChatWrapper from "@/components/ClientChatWrapper";
 
 export const metadata: Metadata = {
     title: "Bravo Consultancy - IELTS, PTE, GRE, SAT Preparation",
@@ -26,6 +27,7 @@ export default function RootLayout({
 			<body>
 				<AuthProvider>
 					{children}
+					<ClientChatWrapper />
 				</AuthProvider>
 				<Toaster position="top-center" expand={true} richColors />
 			</body>

@@ -10,10 +10,10 @@ import { Send, UserPlus, Users } from "lucide-react";
 import { 
   getMessagesBetweenUsers, 
   sendMessage, 
-  subscribeToMessages,
   getAllModerators
-} from "../../../../../_chatController";
-import { useAuthStore } from "@/lib/stores/authStore";
+} from "@/controllers/ChatController";
+import { subscribeToMessages } from "@/lib/client/appwrite-realtime";
+import { useAuthStore } from "@/lib/stores/auth_store";
 import { useToast } from "@/hooks/use-toast";
 import {
   Select,
@@ -22,6 +22,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { UserDataInterface } from "@/lib/type";
 
 interface Message {
   $id: string;
@@ -53,14 +54,17 @@ export default function StudentMessagesPage() {
     online: false
   });
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const { user, checkUser } = useAuthStore();
+  const [user,setUser] = useState<UserDataInterface | null>(null);
+  const {getCurrentUser} = useAuthStore();
   const studentId = user?.$id;
   const { toast } = useToast();
   
   // Initialize auth on component mount
   useEffect(() => {
-    checkUser();
-  }, [checkUser]);
+    getCurrentUser().then((user) => {
+      setUser(user);
+    });
+  }, []);
   
   // Load available moderators
   useEffect(() => {
@@ -164,34 +168,38 @@ export default function StudentMessagesPage() {
     setMessages([]);
   };
   
-  // Set up real-time listener for new messages
-  useEffect(() => {
-    if (!studentId || !selectedModeratorId) return;
-    
-    const unsubscribe = subscribeToMessages((newMessage) => {
-      // Check if the message is from the current conversation
-      if ((newMessage.senderId === studentId && newMessage.receiverId === selectedModeratorId) ||
-          (newMessage.senderId === selectedModeratorId && newMessage.receiverId === studentId)) {
-        setMessages((prevMessages) => [...prevMessages, newMessage]);
-      }
-    });
-    
-    return () => {
-      unsubscribe();
-    };
-  }, [studentId, selectedModeratorId]);
-  
-  // Scroll to bottom of messages when messages change
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
-  
   const handleSendMessage = async () => {
-    if (!messageText.trim() || !studentId || !selectedModeratorId) return;
+    if (!messageText.trim() || !selectedModeratorId || !studentId) return;
     
     try {
-      await sendMessage(studentId, selectedModeratorId, messageText);
+      console.log("Sending message from", studentId, "to", selectedModeratorId);
+      const newMessage = await sendMessage(
+        studentId,
+        selectedModeratorId,
+        messageText.trim()
+      );
+      console.log("Message sent successfully:", newMessage);
+      
+      // Add the new message to the UI immediately without waiting for the subscription
+      setMessages((prevMessages) => [
+        ...prevMessages, 
+        {
+          $id: newMessage.messageId || Date.now().toString(),
+          messageId: newMessage.messageId || Date.now().toString(),
+          text: messageText.trim(),
+          senderId: studentId,
+          receiverId: selectedModeratorId,
+          timestamp: new Date().toISOString()
+        } as Message
+      ]);
+      
+      // Clear the input field
       setMessageText("");
+      
+      // Scroll to the bottom to show the new message
+      setTimeout(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+      }, 100);
     } catch (error) {
       console.error("Error sending message:", error);
       toast({
@@ -201,6 +209,60 @@ export default function StudentMessagesPage() {
       });
     }
   };
+
+  // Set up real-time listener for new messages
+  useEffect(() => {
+    if (!studentId || !selectedModeratorId) return;
+    
+    console.log("Setting up real-time message subscription for student:", studentId);
+    
+    // Use the client-side implementation for real-time updates
+    const unsubscribeFunction = subscribeToMessages((newMessage) => {
+      console.log("Real-time message received:", newMessage);
+      
+      // Check if the message is from the current conversation
+      if ((newMessage.senderId === studentId && newMessage.receiverId === selectedModeratorId) ||
+          (newMessage.senderId === selectedModeratorId && newMessage.receiverId === studentId)) {
+        
+        console.log("Adding new message to current conversation");
+        
+        // Avoid duplicate messages by checking if we already have it
+        setMessages((prevMessages) => {
+          // Check if message with this ID already exists
+          if (prevMessages.some(msg => msg.$id === newMessage.$id)) {
+            return prevMessages;
+          }
+          
+          // Add the new message
+          const updatedMessages = [...prevMessages, newMessage];
+          
+          // Sort messages by timestamp to ensure correct order
+          updatedMessages.sort((a, b) => 
+            new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+          );
+          
+          return updatedMessages;
+        });
+        
+        // Scroll to the bottom to show the new message
+        setTimeout(() => {
+          messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+        }, 100);
+      }
+    });
+    
+    return () => {
+      console.log("Cleaning up message subscription");
+      if (unsubscribeFunction) {
+        unsubscribeFunction();
+      }
+    };
+  }, [studentId, selectedModeratorId]);
+
+  // Scroll to bottom of messages when messages change
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
   
   return (
     <div className="p-6 h-[calc(100vh-6rem)]">

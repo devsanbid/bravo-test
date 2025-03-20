@@ -5,6 +5,8 @@ import { ID, Query } from "node-appwrite";
 const DATABASE_ID = process.env.NEXT_PUBLIC_DATABASEID || "";
 const USERS_COLLECTION_ID = process.env.NEXT_PUBLIC_COLLECTID || "";
 const MESSAGE_COLLECTION_ID = process.env.MESSAGE_ID || "";
+const CHAT_ROOMS_COLLECTION_ID = process.env.CHAT_ROOMS_ID || "";
+const ROOM_MESSAGES_COLLECTION_ID = process.env.ROOM_MESSAGES_ID || "";
 
 interface MessageData {
 	messageId: string;
@@ -398,34 +400,321 @@ export async function subscribeToMessages(callback: (message: any) => void) {
 		const subscriptionChannel = `databases.${DATABASE_ID}.collections.${MESSAGE_COLLECTION_ID}.documents`;
 		console.log("Subscribing to channel:", subscriptionChannel);
 
-		// Add more specific error handling
-		try {
-			const { client } = await createSessionClient();
-			const unsubscribe = client.subscribe(
-				[subscriptionChannel],
-				(response: any) => {
-					// Check if this is a document creation event
-					if (
-						response.events &&
-						response.events.includes(
-							`databases.${DATABASE_ID}.collections.${MESSAGE_COLLECTION_ID}.documents.create`,
-						)
-					) {
-						console.log("New message received:", response.payload?.$id);
-						callback(response.payload);
-					}
-				},
-			);
+		// Return a Promise that resolves to the unsubscribe function
+		return new Promise<() => void>(async (resolve, reject) => {
+			try {
+				const { client } = await createSessionClient();
+				
+				// Check if we have a realtime client
+				if (!client.subscribe) {
+					console.error("Realtime client not available");
+					resolve(() => console.log("No subscription to unsubscribe from"));
+					return;
+				}
+				
+				const unsubscribe = client.subscribe(
+					[subscriptionChannel],
+					(response: any) => {
+						// Check if this is a document creation event
+						if (
+							response.events &&
+							response.events.includes(
+								`databases.${DATABASE_ID}.collections.${MESSAGE_COLLECTION_ID}.documents.create`,
+							)
+						) {
+							console.log("New message received:", response.payload?.$id);
+							callback(response.payload);
+						}
+					},
+				);
 
-			console.log("Subscription set up successfully");
-			return unsubscribe;
-		} catch (subError) {
-			console.error("Subscription error:", subError);
-			throw subError;
-		}
+				console.log("Subscription set up successfully");
+				resolve(unsubscribe);
+			} catch (subError) {
+				console.error("Subscription error:", subError);
+				// Provide a dummy unsubscribe function in case of error
+				resolve(() => console.log("Dummy unsubscribe called (from error)"));
+				reject(subError);
+			}
+		});
 	} catch (error: any) {
 		console.error("Error in subscribeToMessages:", error);
-		// Return a dummy unsubscribe function to prevent errors
-		return () => console.log("Dummy unsubscribe called");
+		// Return a Promise that resolves to a dummy unsubscribe function
+		return Promise.resolve(() => console.log("Dummy unsubscribe called"));
+	}
+}
+
+// Get all active chat sessions for a user
+export async function getUserChatSessions(userId: string) {
+	try {
+		console.log(`Getting chat sessions for user: ${userId}`);
+		const { databases } = await createAdminClient();
+
+		// Find all messages where the user is either sender or receiver
+		const sentMessages = await databases.listDocuments(
+			DATABASE_ID,
+			MESSAGE_COLLECTION_ID,
+			[Query.equal("senderId", userId), Query.orderDesc("timestamp"), Query.limit(100)]
+		);
+
+		const receivedMessages = await databases.listDocuments(
+			DATABASE_ID,
+			MESSAGE_COLLECTION_ID,
+			[Query.equal("receiverId", userId), Query.orderDesc("timestamp"), Query.limit(100)]
+		);
+
+		// Extract unique user IDs the current user has chatted with
+		const chatPartnerIds = new Set<string>();
+		
+		sentMessages.documents.forEach(doc => {
+			chatPartnerIds.add(doc.receiverId);
+		});
+		
+		receivedMessages.documents.forEach(doc => {
+			chatPartnerIds.add(doc.senderId);
+		});
+
+		// Get user details for each chat partner
+		const chatSessions = [];
+		for (const partnerId of Array.from(chatPartnerIds)) {
+			try {
+				// Get the most recent message between these users
+				const recentMessages = await databases.listDocuments(
+					DATABASE_ID,
+					MESSAGE_COLLECTION_ID,
+					[
+						Query.or([
+							Query.and([
+								Query.equal("senderId", userId),
+								Query.equal("receiverId", partnerId)
+							]),
+							Query.and([
+								Query.equal("senderId", partnerId),
+								Query.equal("receiverId", userId)
+							])
+						]),
+						Query.orderDesc("timestamp"),
+						Query.limit(1)
+					]
+				);
+
+				// Get partner user details
+				const partnerDetails = await getUserDetails(partnerId);
+				
+				if (recentMessages.documents.length > 0 && partnerDetails) {
+					chatSessions.push({
+						partnerId: partnerId,
+						partnerName: partnerDetails.firstName + " " + partnerDetails.lastName,
+						partnerRole: partnerDetails.role,
+						partnerType: partnerDetails.type,
+						lastMessage: recentMessages.documents[0].text,
+						lastMessageTime: recentMessages.documents[0].timestamp,
+						unreadCount: 0 // This would need additional logic to track read status
+					});
+				}
+			} catch (error) {
+				console.error(`Error getting details for chat partner ${partnerId}:`, error);
+				// Continue with other partners
+			}
+		}
+
+		// Sort by most recent message
+		chatSessions.sort((a, b) => 
+			new Date(b.lastMessageTime).getTime() - new Date(a.lastMessageTime).getTime()
+		);
+
+		return chatSessions;
+	} catch (error) {
+		console.error("Error getting user chat sessions:", error);
+		throw error;
+	}
+}
+
+// Get user details by user ID
+export async function getUserDetails(userId: string) {
+	try {
+		console.log(`Getting user details for: ${userId}`);
+		const { databases } = await createAdminClient();
+
+		// Find user document by userId
+		const users = await databases.listDocuments(
+			DATABASE_ID,
+			USERS_COLLECTION_ID,
+			[Query.equal("userId", userId)]
+		);
+
+		if (users.documents.length > 0) {
+			return users.documents[0];
+		}
+		
+		return null;
+	} catch (error) {
+		console.error(`Error getting user details for ${userId}:`, error);
+		return null;
+	}
+}
+
+// Mark messages as read
+export async function markMessagesAsRead(userId: string, partnerId: string) {
+	try {
+		console.log(`Marking messages as read from ${partnerId} to ${userId}`);
+		const { databases } = await createAdminClient();
+
+		// Find all unread messages from partner to user
+		// Note: You would need to add a 'read' field to your message schema
+		const unreadMessages = await databases.listDocuments(
+			DATABASE_ID,
+			MESSAGE_COLLECTION_ID,
+			[
+				Query.equal("senderId", partnerId),
+				Query.equal("receiverId", userId),
+				Query.equal("read", false)
+			]
+		);
+
+		// Update each message to mark as read
+		const updatePromises = unreadMessages.documents.map(doc => 
+			databases.updateDocument(
+				DATABASE_ID,
+				MESSAGE_COLLECTION_ID,
+				doc.$id,
+				{ read: true }
+			)
+		);
+
+		await Promise.all(updatePromises);
+		
+		return { success: true, count: unreadMessages.documents.length };
+	} catch (error) {
+		console.error("Error marking messages as read:", error);
+		throw error;
+	}
+}
+
+// Get unread message count
+export async function getUnreadMessageCount(userId: string) {
+	try {
+		console.log(`Getting unread message count for user: ${userId}`);
+		const { databases } = await createAdminClient();
+
+		// Count unread messages sent to this user
+		// Note: You would need to add a 'read' field to your message schema
+		const unreadMessages = await databases.listDocuments(
+			DATABASE_ID,
+			MESSAGE_COLLECTION_ID,
+			[
+				Query.equal("receiverId", userId),
+				Query.equal("read", false)
+			]
+		);
+
+		return unreadMessages.total;
+	} catch (error) {
+		console.error("Error getting unread message count:", error);
+		return 0;
+	}
+}
+
+// Create a chat room (for group chats if needed)
+export async function createChatRoom(name: string, creatorId: string, memberIds: string[]) {
+	try {
+		console.log(`Creating chat room: ${name}`);
+		const { databases } = await createAdminClient();
+
+		// Create a new chat room document
+		// Note: You would need to create a CHAT_ROOMS_COLLECTION
+		const roomId = ID.unique();
+		const room = await databases.createDocument(
+			DATABASE_ID,
+			CHAT_ROOMS_COLLECTION_ID,
+			roomId,
+			{
+				name,
+				creatorId,
+				members: [creatorId, ...memberIds],
+				createdAt: new Date().toISOString(),
+				updatedAt: new Date().toISOString()
+			}
+		);
+
+		return room;
+	} catch (error) {
+		console.error("Error creating chat room:", error);
+		throw error;
+	}
+}
+
+// Send message to a chat room
+export async function sendRoomMessage(roomId: string, senderId: string, text: string) {
+	try {
+		console.log(`Sending message to room ${roomId} from ${senderId}`);
+		const { databases } = await createAdminClient();
+
+		// Verify room exists and user is a member
+		const room = await databases.getDocument(
+			DATABASE_ID,
+			CHAT_ROOMS_COLLECTION_ID,
+			roomId
+		);
+
+		if (!room.members.includes(senderId)) {
+			throw new Error("User is not a member of this chat room");
+		}
+
+		// Create message document
+		const messageId = ID.unique();
+		const documentId = ID.unique();
+
+		const messageData = {
+			messageId,
+			roomId,
+			senderId,
+			text,
+			timestamp: new Date().toISOString(),
+			read: false
+		};
+
+		const result = await databases.createDocument(
+			DATABASE_ID,
+			ROOM_MESSAGES_COLLECTION_ID,
+			documentId,
+			messageData
+		);
+
+		// Update room's updatedAt timestamp
+		await databases.updateDocument(
+			DATABASE_ID,
+			CHAT_ROOMS_COLLECTION_ID,
+			roomId,
+			{ updatedAt: new Date().toISOString() }
+		);
+
+		return result;
+	} catch (error) {
+		console.error("Error sending room message:", error);
+		throw error;
+	}
+}
+
+// Get messages from a chat room
+export async function getRoomMessages(roomId: string) {
+	try {
+		console.log(`Getting messages for room: ${roomId}`);
+		const { databases } = await createAdminClient();
+
+		// Get messages for this room
+		const messages = await databases.listDocuments(
+			DATABASE_ID,
+			ROOM_MESSAGES_COLLECTION_ID,
+			[
+				Query.equal("roomId", roomId),
+				Query.orderDesc("timestamp")
+			]
+		);
+
+		return messages.documents;
+	} catch (error) {
+		console.error("Error getting room messages:", error);
+		throw error;
 	}
 }

@@ -12,8 +12,8 @@ import {
 	getMessagesBetweenUsers,
 	getUsersWithRecentMessages,
 	sendMessage,
-	subscribeToMessages,
 } from "@/controllers/ChatController";
+import { subscribeToMessages } from "@/lib/client/appwrite-realtime";
 import { useAuthStore } from "@/lib/stores/auth_store";
 import { useToast } from "@/hooks/use-toast";
 import { UserDataInterface } from "@/lib/type";
@@ -109,16 +109,40 @@ export default function MessagesManagement() {
 			modId,
 		);
 
-		const unsubscribe = subscribeToMessages((newMessage) => {
+		// Use the client-side implementation for real-time updates
+		const unsubscribeFunction = subscribeToMessages((newMessage) => {
+			console.log("Real-time message received:", newMessage);
+			
 			// Update messages if this is for the currently selected conversation
 			if (
 				selectedUser &&
-				(newMessage.senderId === selectedUser ||
-					newMessage.receiverId === selectedUser) &&
-				(newMessage.senderId === modId || newMessage.receiverId === modId)
+				((newMessage.senderId === selectedUser && newMessage.receiverId === modId) ||
+				(newMessage.senderId === modId && newMessage.receiverId === selectedUser))
 			) {
 				console.log("New message for current conversation received");
-				setMessages((prevMessages) => [...prevMessages, newMessage]);
+				
+				// Avoid duplicate messages by checking if we already have it
+				setMessages((prevMessages) => {
+					// Check if message with this ID already exists
+					if (prevMessages.some(msg => msg.$id === newMessage.$id)) {
+						return prevMessages;
+					}
+					
+					// Add the new message
+					const updatedMessages = [...prevMessages, newMessage];
+					
+					// Sort messages by timestamp to ensure correct order
+					updatedMessages.sort((a, b) => 
+						new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+					);
+					
+					return updatedMessages;
+				});
+				
+				// Scroll to the bottom to show the new message
+				setTimeout(() => {
+					messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+				}, 100);
 			}
 
 			// Update the users list with new last message
@@ -133,8 +157,8 @@ export default function MessagesManagement() {
 							lastMessage: newMessage.text,
 							lastMessageTime: newMessage.timestamp,
 							unread:
-								user.id === newMessage.receiverId &&
-								newMessage.senderId !== moderatorId
+								user.id === newMessage.senderId &&
+								newMessage.senderId !== modId
 									? user.unread + 1
 									: user.unread,
 						};
@@ -145,9 +169,11 @@ export default function MessagesManagement() {
 		});
 
 		return () => {
-			unsubscribe();
+			if (unsubscribeFunction) {
+				unsubscribeFunction();
+			}
 		};
-	}, [moderatorId, selectedUser]);
+	}, [user?.$id, selectedUser]);
 
 	// Load conversation when selecting a user
 	useEffect(() => {
@@ -236,19 +262,38 @@ export default function MessagesManagement() {
 
 	const handleSendMessage = async () => {
 		if (!messageText.trim() || !selectedUser) return;
-
-		// Use a consistent moderator ID across the app
-		const modId = moderatorId || "mod123";
-
+		
+		const modId = user?.$id || "mod123";
+		
 		try {
-			console.log(
-				"Sending message from moderator",
+			console.log("Sending message from", modId, "to", selectedUser);
+			const newMessage = await sendMessage(
 				modId,
-				"to user",
 				selectedUser,
+				messageText.trim()
 			);
-			await sendMessage(modId, selectedUser, messageText);
+			console.log("Message sent successfully:", newMessage);
+			
+			// Add the new message to the UI immediately without waiting for the subscription
+			setMessages((prevMessages) => [
+				...prevMessages, 
+				{
+					$id: newMessage.messageId || Date.now().toString(),
+					messageId: newMessage.messageId || Date.now().toString(),
+					text: messageText.trim(),
+					senderId: modId,
+					receiverId: selectedUser,
+					timestamp: new Date().toISOString()
+				} as Message
+			]);
+			
+			// Clear the input
 			setMessageText("");
+			
+			// Scroll to bottom
+			setTimeout(() => {
+				messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+			}, 100);
 		} catch (error) {
 			console.error("Error sending message:", error);
 			toast({

@@ -14,6 +14,9 @@ export async function createSessionClient() {
 		throw new Error("No session");
 	}
 
+	// Set the session token
+	client.setSession(session.value);
+
 	return {
 		get client() {
 			return client;
@@ -27,7 +30,7 @@ export async function createSessionClient() {
 		},
 		get storage() {
 			return new Storage(client);
-		},
+		}
 	};
 }
 
