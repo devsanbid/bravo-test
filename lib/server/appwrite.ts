@@ -15,6 +15,9 @@ export async function createSessionClient() {
 	}
 
 	return {
+		get client() {
+			return client;
+		},
 		get account() {
 			return new Account(client);
 		},
@@ -35,6 +38,10 @@ export async function createAdminClient() {
 		.setKey(process.env.APPWRITE_API_KEY as string);
 
 	return {
+		get client() {
+			return client;
+		},
+
 		get account() {
 			return new Account(client);
 		},

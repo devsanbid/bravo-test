@@ -48,6 +48,7 @@ export default function MessagesManagement() {
 	const messagesEndRef = useRef<HTMLDivElement>(null);
 	const [user, setUser] = useState<UserDataInterface | null>(null);
 	const { getCurrentUser } = useAuthStore();
+  const moderatorId = user?.$id
 	const { toast } = useToast();
 
 	// Initialize auth on component mount
@@ -96,12 +97,12 @@ export default function MessagesManagement() {
 		}
 
 		fetchUsers();
-	}, [moderatorId, toast]);
+	}, [ toast]);
 
 	// Set up real-time listener for new messages
 	useEffect(() => {
 		// Use a consistent moderator ID across the app
-		const modId = moderatorId || "mod123";
+		const modId = user?.$id || "mod123";
 
 		console.log(
 			"Setting up real-time message subscription for moderator:",

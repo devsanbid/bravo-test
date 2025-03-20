@@ -1,6 +1,21 @@
 import { databases } from '@/lib/appwrite/config';
 import { ID } from 'appwrite';
 
+// creata a prime number finder function
+const isPrime = (num: number) => {
+  if (num <= 1) return false;
+  if (num <= 3) return true;
+  if (num % 2 === 0 || num % 3 === 0) return false;
+  for (let i = 5; i * i <= num; i += 6) {
+    if (num % i === 0 || num % (i + 2) === 0) return false;
+  }
+  return true;  
+}
+
+// create a function to find the prime numbers in an array
+const findPrimeNumbers = (arr: number[]) => {
+  return arr.filter(isPrime);
+};
 export class UserController {
   private static readonly DATABASE_ID = 'your_database_id';
   private static readonly COLLECTION_ID = 'users';
