@@ -9,7 +9,7 @@ const client = new Client();
 const endpoint = process.env.NEXT_PUBLIC_ENDPOINT || "";
 const projectId = process.env.NEXT_PUBLIC_PROJECTID || "";
 const databaseId = process.env.NEXT_PUBLIC_DATABASEID || "";
-const messageCollectionId = process.env.NEXT_PUBLIC_MESSAGE_COLLECTION_ID || ""; // Use NEXT_PUBLIC prefix
+const messageCollectionId = process.env.NEXT_PUBLIC_MESSAGE_ID || ""; // Match the variable name used in ChatController
 
 client
   .setEndpoint(endpoint)

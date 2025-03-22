@@ -2,8 +2,8 @@
 import { useEffect, useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
-import { toast } from "sonner";
 import { ImageCard } from "@/components/ui/ImageCard";
+import { toast } from "sonner";
 // Using fetch API instead of direct server imports
 import { useAuthStore } from "@/lib/stores/auth_store";
 import { subscribeToGallery } from "@/lib/client/gallery-realtime";
@@ -22,7 +22,7 @@ export default function GalleryPage() {
   const router = useRouter();
   // Get authentication state
   const authStore = useAuthStore();
-
+  
   // Process a gallery item to include the image URL
   const processGalleryItem = (item: any) => ({
     $id: item.$id,
@@ -58,7 +58,7 @@ export default function GalleryPage() {
   
   // Set up real-time listener for gallery updates
   useEffect(() => {
-    console.log("Setting up real-time gallery subscription");
+    console.log("Setting up real-time gallery subscription for moderator");
     
     // Use the client-side implementation for real-time updates
     const unsubscribe = subscribeToGallery((galleryItem, eventType) => {
@@ -104,10 +104,31 @@ export default function GalleryPage() {
     };
   }, []);
 
+  const handleDelete = async (imageId: string) => {
+    try {
+      const response = await fetch(`/api/gallery?id=${imageId}`, {
+        method: 'DELETE',
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to delete image');
+      }
+      
+      setImages(images.filter((img) => img.$id !== imageId));
+      toast.success("Image deleted successfully!");
+    } catch (error) {
+      console.error("Error deleting image:", error);
+      toast.error("Failed to delete image.");
+    }
+  };
+
   return (
     <div className="p-4">
       <div className="flex justify-between items-center mb-4">
         <h1 className="text-2xl font-bold">Gallery</h1>
+        <Button onClick={() => router.push("/mod/gallery/create")}>
+          Upload Image
+        </Button>
       </div>
       
       {loading ? (
@@ -116,7 +137,7 @@ export default function GalleryPage() {
         </div>
       ) : images.length === 0 ? (
         <div className="text-center p-8 border rounded-md">
-          <p className="text-gray-500">No images available in the gallery.</p>
+          <p className="text-gray-500">No images found. Upload your first image!</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
@@ -127,7 +148,11 @@ export default function GalleryPage() {
               title={image.title}
               description={image.description}
               imageUrl={image.imageUrl}
-              isMod={false}
+              onUpdate={(imageId) =>
+                router.push(`/mod/gallery/update/${imageId}`)
+              }
+              onDelete={handleDelete}
+              isMod={true}
               imageUrls={images.map((img) => img.imageUrl)}
             />
           ))}

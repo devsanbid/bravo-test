@@ -122,7 +122,14 @@ export default function StudentMessagesPage() {
         try {
           const conversationHistory = await getMessagesBetweenUsers(studentId, selectedModeratorId);
           console.log("Retrieved", conversationHistory.length, "messages");
-          setMessages(conversationHistory);
+          console.log("Conversation history:", conversationHistory);
+          
+          // Sort messages by timestamp to ensure correct order
+          const sortedMessages = [...conversationHistory].sort((a, b) => 
+            new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+          );
+          
+          setMessages(sortedMessages);
         } catch (historyError) {
           console.error("Error fetching history:", historyError);
           toast({

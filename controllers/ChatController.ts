@@ -4,9 +4,9 @@ import { ID, Query } from "node-appwrite";
 
 const DATABASE_ID = process.env.NEXT_PUBLIC_DATABASEID || "";
 const USERS_COLLECTION_ID = process.env.NEXT_PUBLIC_COLLECTID || "";
-const MESSAGE_COLLECTION_ID = process.env.MESSAGE_ID || "";
-const CHAT_ROOMS_COLLECTION_ID = process.env.CHAT_ROOMS_ID || "";
-const ROOM_MESSAGES_COLLECTION_ID = process.env.ROOM_MESSAGES_ID || "";
+const MESSAGE_COLLECTION_ID = process.env.NEXT_PUBLIC_MESSAGE_ID || "";
+const CHAT_ROOMS_COLLECTION_ID = process.env.NEXT_PUBLIC_CHAT_ROOMS_ID || "";
+const ROOM_MESSAGES_COLLECTION_ID = process.env.NEXT_PUBLIC_ROOM_MESSAGES_ID || "";
 
 interface MessageData {
 	messageId: string;

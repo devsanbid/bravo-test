@@ -181,7 +181,7 @@ export default function MessagesManagement() {
 			if (!selectedUser) return;
 
 			// Use a consistent moderator ID across the app
-			const modId = moderatorId || "mod123";
+			const modId = user?.$id || "mod123";
 
 			try {
 				setLoading(true);
@@ -196,8 +196,14 @@ export default function MessagesManagement() {
 					selectedUser,
 				);
 				console.log("Retrieved", conversationHistory.length, "messages");
-				// No need for casting as the controller now returns plain objects
-				setMessages(conversationHistory);
+				console.log("Conversation history:", conversationHistory);
+				
+				// Sort messages by timestamp to ensure correct order
+				const sortedMessages = [...conversationHistory].sort((a, b) => 
+					new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+				);
+				
+				setMessages(sortedMessages);
 
 				// Mark messages as read
 				setUsers((prevUsers) =>
@@ -227,7 +233,7 @@ export default function MessagesManagement() {
 
 	const handleStartConversation = async () => {
 		try {
-			const guestUser = await createGuestUser(DATABASE_ID, USERS_COLLECTION_ID);
+			const guestUser = await createGuestUser();
 			const newUser: User = {
 				id: guestUser.$id,
 				name: guestUser.name,

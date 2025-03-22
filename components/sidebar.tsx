@@ -55,7 +55,7 @@ const routes = [
 	{
 		label: "Gallery",
 		icon: Image,
-		href: "/dashoard/gallery",
+		href: "/dashboard/gallery",
 	},
 	{
 		label: "Blog",

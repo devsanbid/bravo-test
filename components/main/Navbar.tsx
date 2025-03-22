@@ -15,7 +15,6 @@ import { Button } from "@/components/ui/button";
 import { BravoLogo } from "@/components/main/Logo";
 import HeadLine from "@/components/main/HeadLine";
 import { Menu, X, User as UserIcon } from "lucide-react";
-//import UserChat from '../../../chat/UserChat';
 import {
   DropdownMenu,
   DropdownMenuContent,
