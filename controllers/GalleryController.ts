@@ -21,6 +21,9 @@ export async function uploadImage(
 		const { databases, storage } = await createAdminClient();
 		const imageUpload = await storage.createFile(BUCKET_ID, ID.unique(), file);
 
+		// Generate the direct image URL
+		const imageUrl = `${process.env.NEXT_PUBLIC_ENDPOINT}/storage/buckets/${BUCKET_ID}/files/${imageUpload.$id}/view?project=${process.env.NEXT_PUBLIC_PROJECTID}`;
+
 		// Create document with image reference
 		return await databases.createDocument(
 			DATABASE_ID,
@@ -29,7 +32,7 @@ export async function uploadImage(
 			{
 				title,
 				description,
-        imageUrl: await getImagesLink(imageUpload.$id),
+				imageUrl: imageUrl,
 				imageId: imageUpload.$id,
 				createdAt: new Date().toISOString(),
 				userId,
@@ -118,11 +121,6 @@ export async function deleteImage(id: string) {
 }
 
 export async function getImagesLink(imageId: string) {
-	try {
-		const { storage } = await createAdminClient();
-		const imageLink = await storage.getFileView(BUCKET_ID, imageId);
-		return `${imageLink}.href&project=${process.env.NEXT_PUBLIC_PROJECTID}&mode=admin`;
-	} catch (error) {
-		throw error;
-	}
+	// Simply construct and return the direct file view URL
+	return `${process.env.NEXT_PUBLIC_ENDPOINT}/storage/buckets/${BUCKET_ID}/files/${imageId}/view?project=${process.env.NEXT_PUBLIC_PROJECTID}`;
 }

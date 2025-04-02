@@ -55,9 +55,9 @@ const routes = [
     href: "/mod/users",
   },
   {
-    label: "Messages",
+    label: "Moderator Chat",
     icon: MessageSquare,
-    href: "/mod/messages",
+    href: "/mod/moderator-chat",
   },
   {
     label: "Settings",

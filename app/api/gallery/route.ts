@@ -1,7 +1,7 @@
 "use server";
 
 import { NextRequest, NextResponse } from "next/server";
-import { getImages, getImageById, deleteImage, getImagesLink } from "@/controllers/GalleryController";
+import { getImages, getImageById, deleteImage } from "@/controllers/GalleryController";
 
 // GET /api/gallery - Get all gallery images
 export async function GET(request: NextRequest) {
@@ -13,15 +13,23 @@ export async function GET(request: NextRequest) {
     const images = await getImages(limit, offset);
     
     // Process images to include URLs
-    const processedImages = await Promise.all(
-      images.map(async (img) => ({
+    const processedImages = images.map((img) => {
+      // Make sure we have a valid image URL
+      let imageUrl = img.imageUrl;
+      
+      // If no imageUrl is provided, construct it from the imageId
+      if (!imageUrl && img.imageId) {
+        imageUrl = `${process.env.NEXT_PUBLIC_ENDPOINT}/storage/buckets/${process.env.NEXT_PUBLIC_BUCKETID}/files/${img.imageId}/view?project=${process.env.NEXT_PUBLIC_PROJECTID}`;
+      }
+      
+      return {
         $id: img.$id,
         title: img.title,
         description: img.description,
         imageId: img.imageId,
-        imageUrl: img.imageUrl || `${process.env.NEXT_PUBLIC_ENDPOINT}/storage/buckets/${process.env.NEXT_PUBLIC_BUCKETID}/files/${img.imageId}/view?project=${process.env.NEXT_PUBLIC_PROJECTID}`
-      }))
-    );
+        imageUrl: imageUrl
+      };
+    });
     
     return NextResponse.json(processedImages);
   } catch (error) {

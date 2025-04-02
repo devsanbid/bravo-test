@@ -97,38 +97,39 @@ export default function ModeratorChatPage() {
     }
   }, [moderatorId, toast]);
   
-  // Load all moderators only (for student view)
+  // Load all users
   useEffect(() => {
-    async function loadModerators() {
+    async function loadUsers() {
       try {
         const allUsers = await getAllUsers();
         
-        // Map API user data to match our UserData interface and filter to only include moderators
-        const mappedUsers = allUsers
-          .filter(user => user.role === "admin" || user.role === "moderator") // Only show moderators to students
-          .map(user => ({
-            id: user.userId || user.$id,
-            name: `${user.firstName || ''} ${user.lastName || ''}`.trim(),
-            avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.firstName || 'User'}`,
-            email: user.email,
-            role: user.role,
-            type: user.type
-          }));
+        // Map API user data to match our UserData interface
+        const mappedUsers = allUsers.map(user => ({
+          id: user.userId || user.$id,
+          name: `${user.firstName || ''} ${user.lastName || ''}`.trim(),
+          avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.firstName || 'User'}`,
+          email: user.email,
+          role: user.role,
+          type: user.type
+        }));
         
-        // Store only moderators in the students array (we're not showing guests to students)
-        setStudents(mappedUsers);
-        setGuests([]); // Students don't need to see guest users
+        // Separate students and guests
+        const studentUsers = mappedUsers.filter(user => user.role === "student" && user.type !== "guest");
+        const guestUsers = mappedUsers.filter(user => user.type === "guest");
+        
+        setStudents(studentUsers);
+        setGuests(guestUsers);
       } catch (error) {
-        console.error("Error loading moderators:", error);
+        console.error("Error loading users:", error);
         toast({
           title: "Error",
-          description: "Failed to load moderators",
+          description: "Failed to load users",
           variant: "destructive",
         });
       }
     }
     
-    loadModerators();
+    loadUsers();
   }, [toast]);
   
   // Load conversation with the selected user
@@ -140,34 +141,19 @@ export default function ModeratorChatPage() {
       
       try {
         setLoading(true);
-        console.log(`[DEBUG] LOADING CONVERSATION: STUDENT=${moderatorId}, MODERATOR=${selectedUserId}`);
-        
-        // Force reload messages from the database
+        console.log(`Loading conversation between moderator ${moderatorId} and user ${selectedUserId}`);
         const conversationHistory = await getMessagesBetweenUsers(moderatorId, selectedUserId);
-        console.log(`[DEBUG] Retrieved ${conversationHistory.length} messages between ${moderatorId} and ${selectedUserId}`);
-        
-        // Log details about each message for debugging
-        conversationHistory.forEach((msg, index) => {
-          console.log(`[DEBUG] Message ${index + 1}:`, {
-            id: msg.messageId,
-            from: msg.senderId,
-            to: msg.receiverId,
-            text: msg.text,
-            time: msg.timestamp
-          });
-        });
+        console.log(`Retrieved ${conversationHistory.length} messages for the conversation`);
         
         if (conversationHistory.length > 0) {
           // Log the first and last message to debug visibility issues
-          console.log('[DEBUG] First (oldest) message:', conversationHistory[conversationHistory.length-1]);
-          console.log('[DEBUG] Latest message:', conversationHistory[0]);
-        } else {
-          console.log('[DEBUG] No messages found in conversation history');
+          console.log('First message:', conversationHistory[conversationHistory.length-1]);
+          console.log('Latest message:', conversationHistory[0]);
         }
         
         setMessages(conversationHistory);
       } catch (error) {
-        console.error("[DEBUG] Error loading conversation:", error);
+        console.error("Error loading conversation:", error);
         toast({
           title: "Error",
           description: "Failed to load message history",
@@ -187,12 +173,12 @@ export default function ModeratorChatPage() {
   useEffect(() => {
     if (!moderatorId || !selectedUserId) return;
     
-    console.log(`[DEBUG] Setting up real-time listener: STUDENT=${moderatorId}, MODERATOR=${selectedUserId}`);
+    console.log(`[DEBUG] Setting up real-time listener: MODERATOR=${moderatorId}, STUDENT=${selectedUserId}`);
     
     // Use the client-side implementation for real-time updates
     const unsubscribeFunction = subscribeToMessages((newMessage) => {
       console.log(`[DEBUG] Received real-time message:`, JSON.stringify(newMessage));
-      console.log(`[DEBUG] Current conversation: STUDENT=${moderatorId}, MODERATOR=${selectedUserId}`);
+      console.log(`[DEBUG] Current conversation: MODERATOR=${moderatorId}, STUDENT=${selectedUserId}`);
       console.log(`[DEBUG] Message details: FROM=${newMessage.senderId}, TO=${newMessage.receiverId}`);
       
       // Check if the message is from the current conversation
@@ -215,7 +201,7 @@ export default function ModeratorChatPage() {
             return prevMessages;
           } else {
             console.log(`[DEBUG] Adding new message ${newMessage.messageId} to conversation`);
-            return [newMessage, ...prevMessages];
+            return [...prevMessages, newMessage];
           }
         });
         
@@ -263,30 +249,17 @@ export default function ModeratorChatPage() {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
   
-  const handleUserSelect = async (userId: string, userData: UserData) => {
-    console.log(`[DEBUG] User selected: ${userId} (${userData.name})`);
+  const handleUserSelect = (userId: string, userData: UserData) => {
     setSelectedUserId(userId);
     setSelectedUserData(userData);
     setMessages([]);
-    
-    // Immediately load messages when selecting a user
-    if (moderatorId) {
-      try {
-        console.log(`[DEBUG] Immediately loading messages between ${moderatorId} and ${userId}`);
-        const messages = await getMessagesBetweenUsers(moderatorId, userId);
-        console.log(`[DEBUG] Loaded ${messages.length} messages immediately after selection`);
-        setMessages(messages);
-      } catch (error) {
-        console.error("[DEBUG] Error loading messages on user select:", error);
-      }
-    }
   };
   
   const handleSendMessage = async () => {
     if (!messageText.trim() || !moderatorId || !selectedUserId) return;
     
     try {
-      console.log(`Sending message from student ${moderatorId} to moderator ${selectedUserId}`);
+      console.log(`Sending message from moderator ${moderatorId} to user ${selectedUserId}`);
       const sentMessage = await sendMessage(moderatorId, selectedUserId, messageText);
       console.log('Message sent successfully:', sentMessage);
       
@@ -300,7 +273,7 @@ export default function ModeratorChatPage() {
         timestamp: new Date().toISOString(),
       };
       
-      setMessages(prevMessages => [newMessage, ...prevMessages]);
+      setMessages(prevMessages => [ ...prevMessages, newMessage]);
       setMessageText("");
       
       // Check if this user is already in our chat sessions
@@ -335,11 +308,11 @@ export default function ModeratorChatPage() {
     <div className="p-6 h-[calc(100vh-6rem)]">
       <Tabs value={activeTab} onValueChange={setActiveTab} className="h-full flex flex-col">
         <div className="flex items-center justify-between mb-4">
-          <h1 className="text-2xl font-bold">Chat with Moderators</h1>
+          <h1 className="text-2xl font-bold">Moderator Chat Management</h1>
           <TabsList>
             <TabsTrigger value="active-chats" className="flex items-center gap-2">
               <Users className="h-4 w-4" />
-              My Conversations
+              Active Chats
               {chatSessions.some(session => session.unreadCount > 0) && (
                 <Badge variant="destructive" className="ml-1 h-5 w-5 p-0 flex items-center justify-center">
                   {chatSessions.reduce((total, session) => total + session.unreadCount, 0)}
@@ -348,7 +321,7 @@ export default function ModeratorChatPage() {
             </TabsTrigger>
             <TabsTrigger value="all-users" className="flex items-center gap-2">
               <User className="h-4 w-4" />
-              All Moderators
+              All Users
             </TabsTrigger>
           </TabsList>
         </div>
@@ -357,7 +330,7 @@ export default function ModeratorChatPage() {
           <TabsContent value="active-chats" className="m-0 h-full">
             <Card className="h-full">
               <CardHeader>
-                <CardTitle>My Conversations</CardTitle>
+                <CardTitle>Active Conversations</CardTitle>
               </CardHeader>
               <CardContent>
                 <ScrollArea className="h-[calc(100vh-16rem)]">
@@ -427,37 +400,70 @@ export default function ModeratorChatPage() {
           <TabsContent value="all-users" className="m-0 h-full">
             <Card className="h-full">
               <CardHeader>
-                <CardTitle>All Moderators</CardTitle>
+                <CardTitle>All Users</CardTitle>
               </CardHeader>
               <CardContent>
-                <Tabs defaultValue="moderators" className="w-full">
+                <Tabs defaultValue="students" className="w-full">
                   <TabsList className="w-full">
-                    <TabsTrigger value="moderators" className="flex-1">Moderators</TabsTrigger>
+                    <TabsTrigger value="students" className="flex-1">Students</TabsTrigger>
+                    <TabsTrigger value="guests" className="flex-1">Guests</TabsTrigger>
                   </TabsList>
-                  <TabsContent value="moderators" className="mt-4">
+                  <TabsContent value="students" className="mt-4">
                     <ScrollArea className="h-[calc(100vh-20rem)]">
                       {students.length === 0 ? (
                         <div className="text-center py-8 text-gray-500">
-                          <p>No moderators found</p>
+                          <p>No students found</p>
                         </div>
                       ) : (
                         <div className="space-y-2">
-                          {students.map((moderator) => (
+                          {students.map((student) => (
                             <div
-                              key={moderator.id}
+                              key={student.id}
                               className={`p-3 rounded-lg cursor-pointer hover:bg-gray-100 transition-colors ${
-                                selectedUserId === moderator.id ? "bg-gray-100" : ""
+                                selectedUserId === student.id ? "bg-gray-100" : ""
                               }`}
-                              onClick={() => handleUserSelect(moderator.id, moderator)}
+                              onClick={() => handleUserSelect(student.id, student)}
                             >
                               <div className="flex items-center gap-3">
                                 <Avatar>
-                                  <AvatarImage src={moderator.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${moderator.name}`} />
-                                  <AvatarFallback>{moderator.name.substring(0, 2).toUpperCase()}</AvatarFallback>
+                                  <AvatarImage src={student.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${student.name}`} />
+                                  <AvatarFallback>{student.name.substring(0, 2).toUpperCase()}</AvatarFallback>
                                 </Avatar>
                                 <div>
-                                  <h4 className="font-medium">{moderator.name}</h4>
-                                  <Badge variant="secondary" className="ml-2">{moderator.role}</Badge>
+                                  <h4 className="font-medium">{student.name}</h4>
+                                  <p className="text-sm text-gray-500">{student.email}</p>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </ScrollArea>
+                  </TabsContent>
+                  <TabsContent value="guests" className="mt-4">
+                    <ScrollArea className="h-[calc(100vh-20rem)]">
+                      {guests.length === 0 ? (
+                        <div className="text-center py-8 text-gray-500">
+                          <p>No guest users found</p>
+                        </div>
+                      ) : (
+                        <div className="space-y-2">
+                          {guests.map((guest) => (
+                            <div
+                              key={guest.id}
+                              className={`p-3 rounded-lg cursor-pointer hover:bg-gray-100 transition-colors ${
+                                selectedUserId === guest.id ? "bg-gray-100" : ""
+                              }`}
+                              onClick={() => handleUserSelect(guest.id, guest)}
+                            >
+                              <div className="flex items-center gap-3">
+                                <Avatar>
+                                  <AvatarImage src={guest.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${guest.name}`} />
+                                  <AvatarFallback>{guest.name.substring(0, 2).toUpperCase()}</AvatarFallback>
+                                </Avatar>
+                                <div>
+                                  <h4 className="font-medium">{guest.name}</h4>
+                                  <Badge variant="outline" className="ml-2">Guest</Badge>
                                 </div>
                               </div>
                             </div>

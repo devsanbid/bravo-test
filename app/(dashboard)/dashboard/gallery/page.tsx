@@ -45,6 +45,7 @@ export default function GalleryPage() {
         
         const processedImages = await response.json();
         setImages(processedImages);
+        console.log("images: ", processedImages)
       } catch (error) {
         console.error("Error fetching images:", error);
         toast.error("Failed to load images");

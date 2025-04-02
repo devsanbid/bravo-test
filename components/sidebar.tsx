@@ -63,9 +63,9 @@ const routes = [
 		href: "/dashboard/blog",
 	},
 	{
-		label: "Message",
+		label: "Moderator Chat",
 		icon: MessageCircle,
-		href: "/dashboard/message",
+		href: "/dashboard/moderator-chat",
 	},
 	{
 		label: "Settings",

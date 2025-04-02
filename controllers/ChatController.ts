@@ -23,6 +23,12 @@ export async function createGuestUser() {
 			DATABASE_ID,
 			"USERS_COLLECTION_ID:",
 			USERS_COLLECTION_ID,
+			"MESSAGE_COLLECTION_ID:",
+			MESSAGE_COLLECTION_ID,
+			"CHAT_ROOMS_COLLECTION_ID:",
+			CHAT_ROOMS_COLLECTION_ID,
+			"ROOM_MESSAGES_COLLECTION_ID:",
+			ROOM_MESSAGES_COLLECTION_ID,
 		);
 
 		const adminClient = await createAdminClient();
@@ -91,7 +97,8 @@ export async function sendMessage(
 	text: string,
 ) {
 	try {
-		console.log("Sending message from", senderId, "to", receiverId);
+		console.log("[DEBUG] ====== START SEND MESSAGE ======");
+		console.log(`[DEBUG] Sending message: FROM=${senderId} TO=${receiverId} TEXT="${text}"`); 
 
 		const adminClient = await createAdminClient();
 		if (!adminClient) {
@@ -100,35 +107,40 @@ export async function sendMessage(
 
 		const { databases } = adminClient;
 
-		const messageId = ID.unique();
-		const documentId = ID.unique();
+		// Use the same ID for both messageId and documentId to prevent duplication
+		const uniqueId = ID.unique();
+		console.log(`[DEBUG] Generated uniqueId: ${uniqueId} (using for both messageId and documentId)`);
 
 		const messageData: MessageData = {
-			messageId,
+			messageId: uniqueId,
 			senderId,
 			receiverId,
 			text,
 			timestamp: new Date().toISOString(),
 		};
 
-		console.log("Creating message document with ID:", documentId);
+		console.log(`[DEBUG] Message data to be stored:`, JSON.stringify(messageData));
 
 		try {
 			const result = await databases.createDocument(
 				DATABASE_ID,
 				MESSAGE_COLLECTION_ID,
-				documentId,
+				uniqueId, // Use the same uniqueId here
 				messageData,
 			);
 
-			console.log("Message sent successfully:", result.$id);
+			console.log(`[DEBUG] Message document created in database with ID: ${result.$id}`);
+			console.log(`[DEBUG] Created message content:`, JSON.stringify(result));
+			console.log("[DEBUG] ====== END SEND MESSAGE - SUCCESS ======");
 			return result;
 		} catch (dbError) {
-			console.error("Database error when sending message:", dbError);
+			console.error("[DEBUG] Database error when creating message document:", dbError);
+			console.log("[DEBUG] ====== END SEND MESSAGE - DATABASE ERROR ======");
 			throw dbError;
 		}
 	} catch (error: any) {
-		console.error("Error in sendMessage:", error);
+		console.error("[DEBUG] Fatal error in sendMessage:", error);
+		console.log("[DEBUG] ====== END SEND MESSAGE - FATAL ERROR ======");
 		throw new Error(
 			`Failed to send message: ${error?.message || "Unknown error"}`,
 		);
@@ -140,36 +152,28 @@ export async function getMessagesBetweenUsers(
 	userId2: string,
 ) {
 	try {
-		console.log(`Fetching messages between users ${userId1} and ${userId2}`);
+		console.log(`[DEBUG] ====== START GET MESSAGES BETWEEN USERS ======`);
+		console.log(`[DEBUG] Fetching messages between: USER1=${userId1} USER2=${userId2}`);
+		
 		const { databases } = await createAdminClient();
 
-		// Query messages where either:
-		// 1. userId1 is sender and userId2 is receiver, OR
-		// 2. userId2 is sender and userId1 is receiver
-		// Get messages where user1 is sender and user2 is receiver
-		const sentMessages = await databases.listDocuments(
+		// APPROACH 1: SIMPLER QUERY
+		// Use a single query with OR conditions to get both sent and received messages
+		console.log(`[DEBUG] Using single query approach to get all messages`);
+		const allMessagesQuery = await databases.listDocuments(
 			DATABASE_ID,
 			MESSAGE_COLLECTION_ID,
 			[
-				Query.equal("senderId", userId1),
-				Query.equal("receiverId", userId2),
+				Query.equal("senderId", [userId1, userId2]),
+				Query.equal("receiverId", [userId1, userId2]),
 				Query.orderDesc("timestamp"),
+				Query.limit(100), // Limit to last 100 messages for better performance
 			],
 		);
-
-		// Get messages where user2 is sender and user1 is receiver
-		const receivedMessages = await databases.listDocuments(
-			DATABASE_ID,
-			MESSAGE_COLLECTION_ID,
-			[
-				Query.equal("senderId", userId2),
-				Query.equal("receiverId", userId1),
-				Query.orderDesc("timestamp"),
-			],
-		);
+		console.log(`[DEBUG] Initial query returned ${allMessagesQuery.documents.length} messages`);
 
 		// Convert Appwrite documents to plain serializable objects
-		const sentMessagesPlain = sentMessages.documents.map((doc) => ({
+		const messagesPlain = allMessagesQuery.documents.map((doc) => ({
 			$id: doc.$id,
 			messageId: doc.messageId,
 			senderId: doc.senderId,
@@ -178,26 +182,48 @@ export async function getMessagesBetweenUsers(
 			timestamp: doc.timestamp,
 		}));
 
-		const receivedMessagesPlain = receivedMessages.documents.map((doc) => ({
-			$id: doc.$id,
-			messageId: doc.messageId,
-			senderId: doc.senderId,
-			receiverId: doc.receiverId,
-			text: doc.text,
-			timestamp: doc.timestamp,
-		}));
+		// Further filter to ensure only messages between these two specific users are included
+		// This is needed because the Appwrite Query.equal with arrays is an "OR" not "AND" condition
+		const filteredMessages = messagesPlain.filter(msg => {
+			const isRelevant = (
+				(msg.senderId === userId1 && msg.receiverId === userId2) || 
+				(msg.senderId === userId2 && msg.receiverId === userId1)
+			);
+			
+			if (!isRelevant) {
+				console.log(`[DEBUG] Filtering out irrelevant message: ${msg.messageId}`);
+			}
+			
+			return isRelevant;
+		});
 
-		// Combine and sort messages
-		const allMessages = [...sentMessagesPlain, ...receivedMessagesPlain];
-		allMessages.sort(
-			(a, b) =>
-				new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime(),
+		console.log(`[DEBUG] After filtering, found ${filteredMessages.length} relevant messages`);
+
+		// Sort by timestamp (newest first)
+		filteredMessages.sort(
+			(a: any, b: any) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
 		);
 
-		console.log(`Retrieved ${allMessages.length} messages`);
-		return allMessages;
+		// Log a sample of messages to debug
+		if (filteredMessages.length > 0) {
+			console.log(`[DEBUG] Newest message:`, JSON.stringify(filteredMessages[0]));
+			if (filteredMessages.length > 1) {
+				console.log(`[DEBUG] Second newest message:`, JSON.stringify(filteredMessages[1]));
+			}
+			if (filteredMessages.length > 2) {
+				console.log(`[DEBUG] Third newest message:`, JSON.stringify(filteredMessages[2]));
+			}
+		} else {
+			console.log(`[DEBUG] No messages found between users`);
+		}
+
+		console.log(`[DEBUG] Returning ${filteredMessages.length} messages`);
+		console.log(`[DEBUG] ====== END GET MESSAGES BETWEEN USERS ======`);
+		
+		return filteredMessages;
 	} catch (error) {
-		console.error("Error getting messages:", error);
+		console.error("[DEBUG] Error getting messages:", error);
+		console.log(`[DEBUG] ====== END GET MESSAGES BETWEEN USERS - ERROR ======`);
 		throw error;
 	}
 }

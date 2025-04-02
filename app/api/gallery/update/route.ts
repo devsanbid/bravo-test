@@ -59,10 +59,18 @@ export async function GET(request: NextRequest) {
     
     const image = await getImageById(id);
     
+    // Make sure we have a valid image URL
+    let imageUrl = image.imageUrl;
+    
+    // If no imageUrl is provided, construct it from the imageId
+    if (!imageUrl && image.imageId) {
+      imageUrl = `${process.env.NEXT_PUBLIC_ENDPOINT}/storage/buckets/${process.env.NEXT_PUBLIC_BUCKETID}/files/${image.imageId}/view?project=${process.env.NEXT_PUBLIC_PROJECTID}`;
+    }
+    
     // Add the image URL
     const processedImage = {
       ...image,
-      imageUrl: image.imageUrl || `${process.env.NEXT_PUBLIC_ENDPOINT}/storage/buckets/${process.env.NEXT_PUBLIC_BUCKETID}/files/${image.imageId}/view?project=${process.env.NEXT_PUBLIC_PROJECTID}`
+      imageUrl: imageUrl
     };
     
     return NextResponse.json(processedImage);
